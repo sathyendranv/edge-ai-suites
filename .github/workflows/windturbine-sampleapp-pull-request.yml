@@ -36,15 +36,15 @@ jobs:
         repository: open-edge-platform/edge-ai-libraries
         ref: main
         path: edge-ai-libraries
-    - name: Build Time Series Analytics microservices
+    - name: Building Time Series Analytics microservices
       run: |
         cd ./edge-ai-libraries/microservices/time-series-analytics/docker
         docker compose down -v 
         docker compose build
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
       with:
           path: timeseries
-    - name: Build
+    - name: Building Wind Turbine Anomaly Detection Sample App
       run: |
         cd ./manufacturing-ai-suite/wind-turbine-anomaly-detection
         make down 
@@ -58,7 +58,7 @@ jobs:
         sed -i "s/MR_MINIO_ACCESS_KEY=.*/MR_MINIO_ACCESS_KEY=user/g" .env
         sed -i "s/MR_MINIO_SECRET_KEY=.*/MR_MINIO_SECRET_KEY=admin12345/g" .env
         make build
-    - name: Deploy
+    - name: Deploying Wind Turbine Anomaly Detection Sample App
       run: |
         cd "${{ github.workspace }}"
         cd ./manufacturing-ai-suite/wind-turbine-anomaly-detection
@@ -67,7 +67,7 @@ jobs:
         make up_mqtt_ingestion
         echo "Deploying using opcua ingestion"
         make up_opcua_ingestion
-    - name: Undeploy
+    - name: Undeploying Wind Turbine Anomaly Detection Sample App
       run: |
         cd "${{ github.workspace }}"
         cd ./manufacturing-ai-suite/wind-turbine-anomaly-detection
