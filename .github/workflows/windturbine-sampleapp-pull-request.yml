@@ -46,7 +46,7 @@ jobs:
           path: timeseries
     - name: Building Wind Turbine Anomaly Detection Sample App
       run: |
-        cd ./manufacturing-ai-suite/wind-turbine-anomaly-detection
+        cd ./timeseries/manufacturing-ai-suite/wind-turbine-anomaly-detection
         make down 
         sed -i "s/INFLUXDB_ADMIN_USERNAME=.*/INFLUXDB_ADMIN_USERNAME=admin/g" .env
         sed -i "s/INFLUXDB_ADMIN_PASSWORD=.*/INFLUXDB_ADMIN_PASSWORD=admin123/g" .env
@@ -61,7 +61,7 @@ jobs:
     - name: Deploying Wind Turbine Anomaly Detection Sample App
       run: |
         cd "${{ github.workspace }}"
-        cd ./manufacturing-ai-suite/wind-turbine-anomaly-detection
+        cd ./timeseries/manufacturing-ai-suite/wind-turbine-anomaly-detection
         echo "Deploying Wind Turbine Anomaly Detection Sample App"
         echo "Deploying using mqtt ingestion"
         make up_mqtt_ingestion
@@ -70,5 +70,5 @@ jobs:
     - name: Undeploying Wind Turbine Anomaly Detection Sample App
       run: |
         cd "${{ github.workspace }}"
-        cd ./manufacturing-ai-suite/wind-turbine-anomaly-detection
+        cd ./timeseries/manufacturing-ai-suite/wind-turbine-anomaly-detection
         make down
