@@ -48,15 +48,22 @@ jobs:
       run: |
         cd ./timeseries/manufacturing-ai-suite/wind-turbine-anomaly-detection
         make down 
-        sed -i "s/INFLUXDB_ADMIN_USERNAME=.*/INFLUXDB_ADMIN_USERNAME=admin/g" .env
-        sed -i "s/INFLUXDB_ADMIN_PASSWORD=.*/INFLUXDB_ADMIN_PASSWORD=admin123/g" .env
-        sed -i "s/INFLUXDB_USERNAME=.*/INFLUXDB_USERNAME=user/g" .env
-        sed -i "s/INFLUXDB_PASSWORD=.*/INFLUXDB_PASSWORD=user123/g" .env
-        sed -i "s/VISUALIZER_GRAFANA_USER=.*/VISUALIZER_GRAFANA_USER=admin/g" .env
-        sed -i "s/VISUALIZER_GRAFANA_PASSWORD=.*/VISUALIZER_GRAFANA_PASSWORD=admin123/g" .env
-        sed -i "s/MR_PSQL_PASSWORD=.*/MR_PSQL_PASSWORD=admin123/g" .env
-        sed -i "s/MR_MINIO_ACCESS_KEY=.*/MR_MINIO_ACCESS_KEY=user/g" .env
-        sed -i "s/MR_MINIO_SECRET_KEY=.*/MR_MINIO_SECRET_KEY=admin12345/g" .env
+        # Generate random values for sensitive environment variables
+        INFLUXDB_USERNAME=$(openssl rand -hex 8)
+        INFLUXDB_PASSWORD=$(openssl rand -hex 12)
+        VISUALIZER_GRAFANA_USER=$(openssl rand -hex 6)
+        VISUALIZER_GRAFANA_PASSWORD=$(openssl rand -hex 10)
+        MR_PSQL_PASSWORD=$(openssl rand -hex 10)
+        MR_MINIO_ACCESS_KEY=$(openssl rand -hex 8)
+        MR_MINIO_SECRET_KEY=$(openssl rand -hex 16)
+
+        sed -i "s/INFLUXDB_USERNAME=.*/INFLUXDB_USERNAME=${INFLUXDB_USERNAME}/g" .env
+        sed -i "s/INFLUXDB_PASSWORD=.*/INFLUXDB_PASSWORD=${INFLUXDB_PASSWORD}/g" .env
+        sed -i "s/VISUALIZER_GRAFANA_USER=.*/VISUALIZER_GRAFANA_USER=${VISUALIZER_GRAFANA_USER}/g" .env
+        sed -i "s/VISUALIZER_GRAFANA_PASSWORD=.*/VISUALIZER_GRAFANA_PASSWORD=${VISUALIZER_GRAFANA_PASSWORD}/g" .env
+        sed -i "s/MR_PSQL_PASSWORD=.*/MR_PSQL_PASSWORD=${MR_PSQL_PASSWORD}/g" .env
+        sed -i "s/MR_MINIO_ACCESS_KEY=.*/MR_MINIO_ACCESS_KEY=${MR_MINIO_ACCESS_KEY}/g" .env
+        sed -i "s/MR_MINIO_SECRET_KEY=.*/MR_MINIO_SECRET_KEY=${MR_MINIO_SECRET_KEY}/g" .env 
         make build
     - name: Deploying Wind Turbine Anomaly Detection Sample App
       run: |
