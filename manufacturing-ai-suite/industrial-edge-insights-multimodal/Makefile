@@ -46,7 +46,7 @@ generated_ssl_certs_nginx:
 .PHONY: check_env_variables
 check_env_variables:
 	@echo "Checking if username/password in .env are matching the rules set..."
-	@variables="INFLUXDB_USERNAME INFLUXDB_PASSWORD VISUALIZER_GRAFANA_USER VISUALIZER_GRAFANA_PASSWORD MR_PSQL_PASSWORD MR_MINIO_ACCESS_KEY MR_MINIO_SECRET_KEY"; \
+	@variables="INFLUXDB_USERNAME INFLUXDB_PASSWORD VISUALIZER_GRAFANA_USER VISUALIZER_GRAFANA_PASSWORD"; \
 	for variable_name in $$variables; do \
 		value=$$(grep -E "^$$variable_name=" $(ENV_FILE) | cut -d'=' -f2); \
 		if [ -z "$$value" ]; then \
@@ -82,48 +82,18 @@ check_env_variables:
 					exit 1; \
 				fi \
 				;; \
-			MR_PSQL_PASSWORD) \
-				if ! echo "$$value" | grep -Eq "^[A-Za-z0-9]{10,}$$" || ! echo "$$value" | grep -q "[0-9]" || ! echo "$$value" | grep -q "[A-Za-z]"; then \
-					echo "MR_PSQL_PASSWORD length must be a minimum of 10 alphanumeric characters with atleast one digit"; \
-					exit 1; \
-				fi \
-				;; \
-			MR_MINIO_ACCESS_KEY) \
-				if ! echo "$$value" | grep -Eq "^[A-Za-z0-9]{10,}$$" || ! echo "$$value" | grep -q "[0-9]" || ! echo "$$value" | grep -q "[A-Za-z]"; then \
-					echo "MR_MINIO_ACCESS_KEY length must be a minimum of 10 alphanumeric characters with atleast one digit"; \
-					exit 1; \
-				fi \
-				;; \
-			MR_MINIO_SECRET_KEY) \
-				if ! echo "$$value" | grep -Eq "^[A-Za-z0-9]{10,}$$" || ! echo "$$value" | grep -q "[0-9]" || ! echo "$$value" | grep -q "[A-Za-z]"; then \
-					echo "MR_MINIO_SECRET_KEY length must be a minimum of 10 alphanumeric characters with atleast one digit"; \
-					exit 1; \
-				fi \
-				;; \
 		esac; \
 	done
 
-.PHONY: up_mqtt_ingestion
-up_mqtt_ingestion: check_env_variables down generated_ssl_certs_nginx
+.PHONY: up
+up: check_env_variables down generated_ssl_certs_nginx
 	@export TELEGRAF_INPUT_PLUGIN=$$(if [ $(INCLUDE) = 'validation' ]; then echo "mqtt_consumer:net:cpu:disk:docker:diskio:kernel:mem:processes:swap:system"; else echo "mqtt_consumer"; fi); \
 	echo "Starting Docker containers..."; \
 	if [ $(INCLUDE) = 'validation' ]; then \
-		$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) -f $(DOCKER_COMPOSE_VALIDATION_FILE) up --scale ia-opcua-server=0 -d; \
+		$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) -f $(DOCKER_COMPOSE_VALIDATION_FILE) up -d; \
 	else \
-		$(DOCKER_COMPOSE) up --scale ia-opcua-server=0 -d; \
+		$(DOCKER_COMPOSE) up -d; \
 	fi;
-
-# Run Docker containers
-.PHONY: up_opcua_ingestion
-up_opcua_ingestion: check_env_variables down generated_ssl_certs_nginx
-	@export TELEGRAF_INPUT_PLUGIN=$$(if [ $(INCLUDE) = 'validation' ]; then echo "opcua:net:cpu:disk:docker:diskio:kernel:mem:processes:swap:system"; else echo "opcua"; fi); \
-	echo "Starting Docker containers..."; \
-	if [ $(INCLUDE) = 'validation' ]; then \
-		$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) -f $(DOCKER_COMPOSE_VALIDATION_FILE) up --scale ia-mqtt-publisher=0 -d ;\
-	else \
-		$(DOCKER_COMPOSE) up --scale ia-mqtt-publisher=0 -d; \
-	fi;
-
 
 # Status of the deployed containers
 .PHONY: status
@@ -174,24 +144,15 @@ push_images: build
 	@echo "Pushing the images to docker registry"
 	docker compose -f $(DOCKER_COMPOSE_FILE) push
 
-# Generate helm packages
-.PHONY: gen_helm_charts
-gen_helm_charts:
-	@echo "Generating Helm packages"
-	$(HELM_PACKAGE_SCRIPT)
-	@echo "Helm packages generated"
-
 # Help
 .PHONY: help
 help:
 	@echo "Makefile commands:"
 	@echo "  make build    - Build Docker containers"
 	@echo "  make build_copyleft_sources - Build Docker containers including copyleft licensed sources"
-	@echo "  make up_mqtt_ingestion     - Start Docker containers using mqtt ingestion"
-	@echo "  make up_opcua_ingestion    - Start Docker containers using opcua ingestion"
+	@echo "  make up    - Start Docker containers"
 	@echo "  make down     - Stop Docker containers"
 	@echo "  make restart  - Restart Docker containers"
 	@echo "  make clean    - Remove all stopped containers and unused images"
 	@echo "  make push_images     - Push the images to docker registry"
-	@echo "  make gen_helm_charts	- Generate helm packages"
 	@echo "  make help     - Display this help message"
