@@ -258,11 +258,11 @@ services:
       AppName: "DLStreamerPipelineServer"
       ENABLE_WEBRTC: true
       WEBRTC_SIGNALING_SERVER: http://mediamtx:${WHIP_SERVER_PORT}
-      ENABLE_RTSP: false
+      ENABLE_RTSP: true
       http_proxy: ${http_proxy}
       https_proxy: ${https_proxy}
-      no_proxy: ${no_proxy},${HOST_IP},${RTSP_CAMERA_IP},otel-collector,mediamtx,model_registry,${MR_MINIO_HOSTNAME}
-      NO_PROXY: ${no_proxy},${HOST_IP},${RTSP_CAMERA_IP},otel-collector,mediamtx,model_registry,${MR_MINIO_HOSTNAME}
+      no_proxy: ${no_proxy},${HOST_IP},${RTSP_CAMERA_IP},otel-collector,mediamtx,model_registry,${MR_MINIO_HOSTNAME},ia-mqtt-broker
+      NO_PROXY: ${no_proxy},${HOST_IP},${RTSP_CAMERA_IP},otel-collector,mediamtx,model_registry,${MR_MINIO_HOSTNAME},ia-mqtt-broker
       GST_DEBUG: "1"
       REST_SERVER_PORT: ${REST_SERVER_PORT}
       S3_STORAGE_HOST: ${MR_MINIO_HOSTNAME}
@@ -283,11 +283,13 @@ services:
       MR_SAVED_MODELS_DIR: ${MR_SAVED_MODELS_DIR}
       MR_REQUEST_TIMEOUT: ${MR_REQUEST_TIMEOUT}
       MR_VERIFY_CERT: ${MR_VERIFY_CERT}
+      MQTT_HOST: ia-mqtt-broker
+      MQTT_PORT: 1883
     volumes:
     - vol_pipeline_root:/var/cache/pipeline_root:uid=1999,gid=1999
     - /var/tmp:/var/tmp
     - ./resources/dlstreamer-pipeline-server/:/home/pipeline-server/resources/
-    - ./apps/dlstreamer-pipeline-server/config/config.json:/home/pipeline-server/config.json
+    - ./dlstreamer-pipeline-server/config.json:/home/pipeline-server/config.json
       # Following devices under /dev filesystem will be needed based on usecase
       # dri - GPU
       # USB camera devices
