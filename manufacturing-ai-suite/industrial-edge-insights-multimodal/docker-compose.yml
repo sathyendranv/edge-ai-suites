@@ -222,8 +222,6 @@ services:
       CONTINUOUS_SIMULATOR_INGESTION: ${CONTINUOUS_SIMULATOR_INGESTION}
     networks:
     - timeseries_network
-    volumes:
-    - ./simulator/simulation_data/windturbine_data.csv:/windturbine_data.csv
 
   nginx:
     image: bitnami/nginx:1.29-debian-12
