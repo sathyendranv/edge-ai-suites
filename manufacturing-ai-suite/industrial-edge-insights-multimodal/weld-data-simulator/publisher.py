@@ -15,7 +15,7 @@ MEDIAMTX_SERVER = os.getenv("MEDIAMTX_SERVER", "mediamtx")
 MEDIAMTX_PORT = os.getenv("MEDIAMTX_PORT", "8554")
 RTSP_STREAM_NAME = os.getenv("RTSP_STREAM_NAME", "live.stream")
 VIDEO_TOPIC = os.getenv("VIDEO_TOPIC", "weld/video")
-DATA_TOPIC = os.getenv("DATA_TOPIC", "wind_turbine_data")
+DATA_TOPIC = os.getenv("DATA_TOPIC", "ts_welding_data")
 RTSP_URL = f"rtsp://{MEDIAMTX_SERVER}:{MEDIAMTX_PORT}/{RTSP_STREAM_NAME}"
 
 published_data = []

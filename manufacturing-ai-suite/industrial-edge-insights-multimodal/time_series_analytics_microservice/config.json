@@ -4,8 +4,8 @@
         "version": "1.0"
     },
     "udfs": {
-        "name": "windturbine_anomaly_detector",
-        "models": "windturbine_anomaly_detector.pkl"
+        "name": "weld_defect_detection",
+        "models": "weld_defect_detection.pkl"
     },
     "alerts": {
         "mqtt": {

@@ -31,7 +31,7 @@ services:
       TELEGRAF_CONFIG_PATH: /etc/telegraf/Telegraf.conf
       OPCUA_SERVER: opc.tcp://ia-opcua-server:4840/freeopcua/server/
       LOG_LEVEL: ${LOG_LEVEL}
-      TELEGRAF_INPUT_PLUGIN: ${TELEGRAF_INPUT_PLUGIN:-opcua}
+      TELEGRAF_INPUT_PLUGIN: ${TELEGRAF_INPUT_PLUGIN:-mqtt_consumer}
       # The Telegraf metric_batch_size specifies the number of metrics or data points 
       # that are grouped together and sent in a single batch to the InfluxDB.
       TELEGRAF_METRIC_BATCH_SIZE: 100
@@ -116,10 +116,10 @@ services:
     - timeseries_network
     volumes:
     - "vol_temp_time_series_analytics_microservice:/tmp/"
-    - ./time_series_analytics_microservice/udfs/:/tmp/windturbine_anomaly_detector/udfs/
-    - ./time_series_analytics_microservice/tick_scripts/:/tmp/windturbine_anomaly_detector/tick_scripts/
+    - ./time_series_analytics_microservice/udfs/:/tmp/weld_defect_detection/udfs/
+    - ./time_series_analytics_microservice/tick_scripts/:/tmp/weld_defect_detection/tick_scripts/
     - ./time_series_analytics_microservice/config.json:/app/config.json
-    - ./time_series_analytics_microservice/models/:/tmp/windturbine_anomaly_detector/models/
+    - ./time_series_analytics_microservice/models/:/tmp/weld_defect_detection/models/
     - /dev/dri:/dev/dri
     - "/run/udev:/run/udev:ro"
     group_add:
@@ -198,6 +198,9 @@ services:
         http_proxy:
         https_proxy:
         no_proxy:
+    depends_on:
+      - ia-mqtt-broker
+      - mediamtx
     container_name: ia-weld-data-simulator
     hostname: ia-weld-data-simulator
     read_only: true
@@ -213,7 +216,7 @@ services:
       MEDIAMTX_SERVER: mediamtx
       MEDIAMTX_PORT: 8554
       VIDEO_TOPIC: weld/video
-      DATA_TOPIC: wind_turbine_data
+      DATA_TOPIC: ts_welding_data
       RTSP_STREAM_NAME: live.stream
       no_proxy: "ia-mqtt-broker,ia-time-series-analytics-microservice,mediamtx,${no_proxy}"
       NO_PROXY: "ia-mqtt-broker,ia-time-series-analytics-microservice,mediamtx,${no_proxy}"
@@ -254,6 +257,8 @@ services:
     ports:
     - '8080:8080'
     - '8554:8554'
+    depends_on:
+      - ia-weld-data-simulator
     environment:
       AppName: "DLStreamerPipelineServer"
       ENABLE_WEBRTC: true
