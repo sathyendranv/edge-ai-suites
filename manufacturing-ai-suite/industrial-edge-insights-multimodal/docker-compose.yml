@@ -242,6 +242,83 @@ services:
       - ia-time-series-analytics-microservice
       - ia-mqtt-broker
   
+  dlstreamer-pipeline-server:
+    image: intel/dlstreamer-pipeline-server:3.1.0-ubuntu22
+    container_name: dlstreamer-pipeline-server
+    hostname: dlstreamer-pipeline-server
+    networks:
+    - timeseries_network
+    restart: unless-stopped
+    security_opt:
+    - no-new-privileges
+    ports:
+    - '8080:8080'
+    - '8554:8554'
+    environment:
+      AppName: "DLStreamerPipelineServer"
+      ENABLE_WEBRTC: true
+      WEBRTC_SIGNALING_SERVER: http://mediamtx:${WHIP_SERVER_PORT}
+      ENABLE_RTSP: false
+      http_proxy: ${http_proxy}
+      https_proxy: ${https_proxy}
+      no_proxy: ${no_proxy},${HOST_IP},${RTSP_CAMERA_IP},otel-collector,mediamtx,model_registry,${MR_MINIO_HOSTNAME}
+      NO_PROXY: ${no_proxy},${HOST_IP},${RTSP_CAMERA_IP},otel-collector,mediamtx,model_registry,${MR_MINIO_HOSTNAME}
+      GST_DEBUG: "1"
+      REST_SERVER_PORT: ${REST_SERVER_PORT}
+      S3_STORAGE_HOST: ${MR_MINIO_HOSTNAME}
+      S3_STORAGE_PORT: ${MR_MINIO_SERVER_PORT}
+      S3_STORAGE_USER: ${MR_MINIO_ACCESS_KEY}
+      S3_STORAGE_PASS: ${MR_MINIO_SECRET_KEY}
+      SERVICE_NAME: "dlstreamer-pipeline-server"
+      ENABLE_OPEN_TELEMETRY: true
+      OTEL_COLLECTOR_HOST: ${OTEL_COLLECTOR_HOST}
+      OTEL_COLLECTOR_PORT: ${OTEL_COLLECTOR_PORT}
+      OTEL_EXPORT_INTERVAL_MILLIS: ${OTEL_EXPORT_INTERVAL_MILLIS}
+      OPCUA_SERVER_IP: ${OPCUA_SERVER_IP}
+      OPCUA_SERVER_PORT: ${OPCUA_SERVER_PORT}
+      OPCUA_SERVER_USERNAME: ${OPCUA_SERVER_USERNAME}
+      OPCUA_SERVER_PASSWORD: ${OPCUA_SERVER_PASSWORD}
+      # Model Registry Microservice
+      MR_URL: ${MR_URL}
+      MR_SAVED_MODELS_DIR: ${MR_SAVED_MODELS_DIR}
+      MR_REQUEST_TIMEOUT: ${MR_REQUEST_TIMEOUT}
+      MR_VERIFY_CERT: ${MR_VERIFY_CERT}
+    volumes:
+    - vol_pipeline_root:/var/cache/pipeline_root:uid=1999,gid=1999
+    - /var/tmp:/var/tmp
+    - ./resources/dlstreamer-pipeline-server/:/home/pipeline-server/resources/
+    - ./apps/dlstreamer-pipeline-server/config/config.json:/home/pipeline-server/config.json
+      # Following devices under /dev filesystem will be needed based on usecase
+      # dri - GPU
+      # USB camera devices
+      # Selective mount can be done for deployment as mounting whole /dev is not recommended
+    - "/dev:/dev"
+    - "/tmp:/tmp"
+      # volume mount the udev database with read-only permission,so the USB3 Vision interfaces can be enumerated correctly in the container
+    - "/run/udev:/run/udev:ro"
+      # Volume mount the directory in host system where the images are stored onto the container directory system.
+      # - <absolute or relative path to the images directory>:/app/img_dir
+      #- ../DLStreamerPipelineServer/udfs:/home/pipeline-server/udfs/
+    group_add:
+      # render group ID for ubuntu 20.04 host OS
+    - "109"
+      # render group ID for ubuntu 22.04 host OS
+    - "110"
+      # render group ID for ubuntu 24.04 host OS
+    - "992"
+    device_cgroup_rules:
+      # Default run - device-cgroup-rule='c 189:* rmw'
+      # Selective rules can be applied for deployment
+    - 'c 189:* rmw'
+    - 'c 209:* rmw'
+    - 'a 189:* rwm'
+    devices:
+      # Following devices under /dev filesystem will be needed based on usecase
+      # dri - GPU
+      # USB camera devices
+      # Selective mount can be done for deployment as mounting whole /dev is not recommended
+    - "/dev:/dev"
+
   mediamtx:
     image: bluenviron/mediamtx:1.11.3
     container_name: mediamtx
@@ -288,6 +365,11 @@ volumes:
       device: tmpfs
   vol_grafana_data:
     name: "visualization_var_grafana_vol"
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+  vol_pipeline_root:
     driver: local
     driver_opts:
       type: tmpfs

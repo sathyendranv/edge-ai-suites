@@ -1,0 +1,36 @@
+{
+    "config": {
+        "pipelines": [
+            {
+                "name": "weld_defect_detection",
+                "source": "gstreamer",
+                "queue_maxsize": 50,
+                "pipeline": "rtspsrc location=\"rtsp://mediamtx:8554/live.stream\" latency=100 name=source ! rtph264depay ! h264parse ! decodebin ! videoconvert ! video/x-raw,format=RGB ! appsink name=destination",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "detection-properties": {
+                             "element": {
+                                "name": "detection",
+                                "format": "element-properties"
+                              }
+                        }
+                    }
+                },
+                "auto_start": true,
+                 "payload": {
+                    "destination": {
+                        "metadata": {
+                            "type": "mqtt",
+                            "topic": "weld_defect_detection"
+                        },
+                        "frame": {
+                            "type": "rtsp",
+                            "path": "weld_defect_detection"
+                        }
+                    }
+                }
+            }
+        ]
+    }
+}
