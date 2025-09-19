@@ -332,7 +332,7 @@ services:
     restart: unless-stopped
     ports:
       - "9554:8554"   # RTSP
-      - "8888:8888"   # HTTP API / Web UI
+      # - "8888:8888"   # HTTP API / Web UI
       - "8889:8889"   # WebRTC
       - "8890:8890"   # RTMP
     environment:
@@ -340,6 +340,7 @@ services:
       - MTX_RTSP=yes
       - MTX_RTMP=no
       - MTX_HLS=no
+      - MTX_WEBUI=yes
       - MTX_WEBRTC=no
 
       # Path settings for cam1

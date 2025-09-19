@@ -19,7 +19,9 @@ import numpy as np
 import requests
 from sklearnex import patch_sklearn, config_context
 patch_sklearn()
-from sklearn.linear_model import LinearRegression
+import torch
+from torch.utils.data import DataLoader, Dataset
+from my_TimesNet import Model as my_TimesNet  # Import custom TimesNet with Inception_Block_V2
 
 warnings.filterwarnings(
     "ignore",
@@ -47,17 +49,41 @@ class AnomalyDetectorHandler(Handler):
     """
     def __init__(self, agent):
         self._agent = agent
-        # read the saved model and load it
-        def load_model(filename):
-            with open(filename, 'rb') as f:
-                model = pickle.load(f)
-            return model
         # Need to enable after model training
-        # model_name = (os.path.basename(__file__)).replace('.py', '.pkl')
-        # model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-        #                             "../models/" + model_name)
-        # model_path = os.path.abspath(model_path)
+        model_name = (os.path.basename(__file__)).replace('.py', '.pth')
+        model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                   "../models/" + model_name)
+        model_path = os.path.abspath(model_path)
         # self.rf = load_model(model_path)
+
+        config = {
+            "activation": "gelu",
+            "c_out": 6,
+            "d_ff": 128,
+            "d_layers": 1,
+            "d_model": 128,
+            "dec_in": 6,
+            "dropout": 0.0,
+            "e_layers": 3,
+            "embed": "timeF",
+            "enc_in": 6,
+            "epochs": 2,
+            "factor": 1,
+            "freq": "h",
+            "moving_avg": 10,
+            "n_heads": 4,
+            "num_kernels": 4,
+            "output_attention": False,
+            "pred_len": 0,
+            "seq_len": 384,
+            "top_k": 3
+        }
+
+        self.model = my_TimesNet(config)
+
+        # device = torch.device(args.device if torch.cuda.is_available() else 'cpu')
+        device = torch.device('cpu')
+        self.model.load_state_dict(torch.load(model_path, map_location=device))
 
         self.points_received = {}
         global total_no_pts
