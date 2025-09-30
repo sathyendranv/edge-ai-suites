@@ -160,6 +160,10 @@ services:
       GF_PROVISIONING_DASHBOARDS: /etc/grafana/provisioning/dashboards
       GF_SERVER_PROTOCOL: http
       GF_LOG_LEVEL: ${LOG_LEVEL}
+      GF_SERVER_SERVE_FROM_SUB_PATH: true
+      GF_PANELS_DISABLE_SANITIZE_HTML: true
+      GF_SECURITY_ALLOW_EMBEDDING: true
+
     networks:
     - timeseries_network
     volumes:
@@ -262,7 +266,7 @@ services:
     environment:
       AppName: "DLStreamerPipelineServer"
       ENABLE_WEBRTC: true
-      WEBRTC_SIGNALING_SERVER: http://mediamtx:${WHIP_SERVER_PORT}
+      WEBRTC_SIGNALING_SERVER: http://mediamtx:8889
       ENABLE_RTSP: true
       http_proxy: ${http_proxy}
       https_proxy: ${https_proxy}
@@ -332,21 +336,35 @@ services:
     restart: unless-stopped
     ports:
       - "9554:8554"   # RTSP
-      - "8888:8888"   # HTTP API / Web UI
+      #- "8888:8888"   # HTTP API / Web UI
       - "8889:8889"   # WebRTC
       - "8890:8890"   # RTMP
+      - "8189:8189"
+      - "9997:9997"
     environment:
-      - MTX_LOGLEVEL=info
+      - MTX_LOGLEVEL=debug
       - MTX_RTSP=yes
       - MTX_RTMP=no
       - MTX_HLS=no
-      - MTX_WEBRTC=no
-
+      - MTX_WEBRTC=yes
+      - MTX_WEBRTCICESERVERS2_0_URL=turn:${HOST_IP}:${COTURN_UDP_PORT}
+      - MTX_WEBRTCICESERVERS2_0_USERNAME=${MTX_WEBRTCICESERVERS2_0_USERNAME}
+      - MTX_WEBRTCICESERVERS2_0_PASSWORD=${MTX_WEBRTCICESERVERS2_0_PASSWORD}
       # Path settings for cam1
       - MTX_PATHS_CAM1_PUBLISHUSER=publisher
       - MTX_PATHS_CAM1_PUBLISHPASS=pubpass
       - MTX_PATHS_CAM1_READUSER=viewer
       - MTX_PATHS_CAM1_READPASS=viewpass
+      - MTX_WEBRTCTRACKGATHERTIMEOUT=20s
+    networks:
+    - timeseries_network
+  coturn:
+    image: coturn/coturn:latest
+    container_name: coturn
+    ports:
+      - "${COTURN_UDP_PORT}:3478"
+      - "${COTURN_UDP_PORT}:3478/udp"
+    command: ["-v"]  # Verbose mode for logging
     networks:
     - timeseries_network
 networks:

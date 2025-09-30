@@ -646,25 +646,8 @@
       "type": "stat"
     },
     {
-      "datasource": {
-        "type": "influxdb",
-        "uid": "P951FEA4DE68E13C5"
-      },
       "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green"
-              }
-            ]
-          }
-        },
+        "defaults": {},
         "overrides": []
       },
       "gridPos": {
@@ -675,33 +658,17 @@
       },
       "id": 8,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
         },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
+        "content": "<iframe \n  src=\"https://10.106.147.21:3000/samplestream/\" \n  style=\"width:100%;height:500px\";\n  allow=\"autoplay; encrypted-media;allow-scripts; allow-same-origin\"\n  >\n</iframe> \n",
+        "mode": "html"
       },
       "pluginVersion": "12.0.0",
-      "targets": [
-        {
-          "query": "SELECT count(wind_speed) AS mean_value FROM wind_turbine_data\n",
-          "rawQuery": true,
-          "refId": "A",
-          "resultFormat": "time_series"
-        }
-      ],
       "title": "Total Ingested Points",
-      "type": "stat"
+      "type": "text"
     },
     {
       "datasource": {
