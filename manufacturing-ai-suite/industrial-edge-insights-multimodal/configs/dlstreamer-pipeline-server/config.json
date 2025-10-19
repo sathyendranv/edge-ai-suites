@@ -5,7 +5,7 @@
                 "name": "weld_defect_classification",
                 "source": "gstreamer",
                 "queue_maxsize": 50,
-                "pipeline": "rtspsrc location=\"rtsp://mediamtx:8554/live.stream\" latency=100 name=source ! rtph264depay ! h264parse ! decodebin ! videoconvert ! gvaclassify inference-region=full-frame name=classification ! gvametaconvert add-empty-results=true name=metaconvert ! queue ! gvafpscounter ! appsink name=destination",
+                "pipeline": "rtspsrc location=\"rtsp://mediamtx:8554/live.stream\" latency=100 name=source ! rtph264depay ! h264parse ! decodebin ! videoconvert ! gvaclassify inference-region=full-frame name=classification ! gvametaconvert add-empty-results=true name=metaconvert ! queue ! gvafpscounter ! jpegenc ! appsink name=destination",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -35,6 +35,11 @@
                             "device": "CPU"
                         }
                     }
+                },
+                "S3_write": {
+                    "bucket": "multimodeldemo",
+                    "folder_prefix": "camera1",
+                    "block": "false"
                 }
             }
         ]
