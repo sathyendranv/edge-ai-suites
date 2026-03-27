@@ -24,7 +24,7 @@ llama-index==0.14.14
 llama-index-embeddings-openvino==0.6.1
 
 qwen-vl-utils==0.0.11
-aiohttp==3.13.2
+aiohttp==3.13.3
 
 moviepy==1.0.3
 # NOTE: no official Windows wheel; install from https://github.com/dmlc/decord/releases or via conda
@@ -40,10 +40,10 @@ unstructured[all-docs]==0.18.32
 python-docx==1.2.0
 docx2txt==0.9
 
-requests==2.32.4
+requests==2.33.0
 tqdm==4.67.0
 numpy>=1.24
-pillow==11.3.0
+pillow==12.1.1
 PyYAML==6.0.2
 
 pytest==8.3.5

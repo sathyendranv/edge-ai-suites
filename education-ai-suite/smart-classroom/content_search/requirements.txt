@@ -85,7 +85,7 @@ requests-oauthlib==2.0.0
 rich==14.3.3
 rpds-py==0.30.0
 safetensors==0.7.0
-setuptools==81.0.0
+setuptools==82.0.1
 shellingham==1.5.4
 six==1.17.0
 SQLAlchemy==2.0.48
