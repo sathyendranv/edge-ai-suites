@@ -502,12 +502,17 @@
       autoRefreshTimerId: null,
     };
 
+    function updateRefreshControlsState() {
+      const disableRefreshControls = state.loading || hasSelectedRows();
+      refreshTopBtn.disabled = disableRefreshControls;
+      refreshIntervalSelect.disabled = disableRefreshControls;
+    }
+
     function setLoading(loading) {
       state.loading = loading;
       prevBtn.disabled = loading || state.page <= 1;
       nextBtn.disabled = loading || !state.hasMore;
-      refreshTopBtn.disabled = loading;
-      refreshIntervalSelect.disabled = loading;
+      updateRefreshControlsState();
     }
 
     function startAutoRefreshTimer() {
@@ -536,6 +541,7 @@
       const enabled = hasSelectedRows() && !state.loading && !state.explainLoading;
       explainBtn.disabled = !enabled;
       explainBtn.classList.toggle("enabled", enabled);
+      updateRefreshControlsState();
     }
 
     function getSelectedTimes() {
