@@ -12,6 +12,13 @@ This guide explains how to deploy the multimodal sample app with the vLLM servic
    - `MTX_WEBRTCICESERVERS2_0_USERNAME`, `MTX_WEBRTCICESERVERS2_0_PASSWORD`
    - `S3_STORAGE_USERNAME`, `S3_STORAGE_PASSWORD`
 
+## System Requirements
+
+| Component | Minimum Requirement |
+|-----------|---------------------|
+| Operating System | Ubuntu 24.04 LTS or later |
+| Hardware | Intel® Core™ Ultra Platform (PTL) or newer |
+
 ## Download Models
 
 **Download `Qwen3.5 2B` model and `Qwen 3.5 2B fine tuned LoRA adapter`**
@@ -37,6 +44,8 @@ cd ../..
 ```
 
 ## Deploy the vLLM Service
+
+> **Note:** vLLM preallocates GPU memory up to the limit specified by `VLLM_GPU_MEMORY_UTILIZATION`. Since the optimal value varies between dGPU and iGPU platforms, update `VLLM_GPU_MEMORY_UTILIZATION` in the `.env` file to match your target hardware.
 
 Run:
 
