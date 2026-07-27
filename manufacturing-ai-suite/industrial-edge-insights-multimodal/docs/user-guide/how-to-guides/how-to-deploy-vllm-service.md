@@ -45,7 +45,7 @@ cd ../..
 
 ## Deploy the vLLM Service
 
-> **Note:** vLLM preallocates GPU memory up to the limit specified by `VLLM_GPU_MEMORY_UTILIZATION`. Since the optimal value varies between dGPU and iGPU platforms, update `VLLM_GPU_MEMORY_UTILIZATION` in the `.env` file to match your target hardware.
+> **Note:** vLLM preallocates GPU-addressable memory up to the limit specified by `VLLM_GPU_MEMORY_UTILIZATION` (VRAM on dGPU, shared system memory on iGPU). Since the optimal value varies between platforms, update `VLLM_GPU_MEMORY_UTILIZATION` in the `.env` file to match your target hardware.
 
 Run:
 
