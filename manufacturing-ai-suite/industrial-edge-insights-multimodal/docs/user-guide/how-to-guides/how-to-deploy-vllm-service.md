@@ -2,6 +2,13 @@
 
 This guide explains how to deploy the multimodal sample app with the vLLM service enabled using the Makefile targets.
 
+## System Requirements
+
+| Component | Minimum Requirement |
+|-----------|---------------------|
+| Operating System | Ubuntu 24.04 LTS or later |
+| Hardware | Intel® Core™ Ultra Platform (PTL) or newer |
+
 ## Prerequisites
 
 1. Ensure `.env` is configured and includes valid values for:
@@ -11,13 +18,6 @@ This guide explains how to deploy the multimodal sample app with the vLLM servic
    - `VISUALIZER_GRAFANA_USER`, `VISUALIZER_GRAFANA_PASSWORD`
    - `MTX_WEBRTCICESERVERS2_0_USERNAME`, `MTX_WEBRTCICESERVERS2_0_PASSWORD`
    - `S3_STORAGE_USERNAME`, `S3_STORAGE_PASSWORD`
-
-## System Requirements
-
-| Component | Minimum Requirement |
-|-----------|---------------------|
-| Operating System | Ubuntu 24.04 LTS or later |
-| Hardware | Intel® Core™ Ultra Platform (PTL) or newer |
 
 ## Download Models
 
