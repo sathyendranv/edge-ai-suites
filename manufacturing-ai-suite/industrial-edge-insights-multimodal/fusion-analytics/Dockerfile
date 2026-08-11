@@ -9,13 +9,14 @@ FROM python:3.13-slim
 # Set working directory
 WORKDIR /app
 
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+  PIP_NO_CACHE_DIR=1
+
 # Copy requirements file
 COPY requirements.txt .
 
-RUN pip install --upgrade pip
-
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
 # Copy application code
 COPY fusion.py api.py /app/
@@ -42,8 +43,8 @@ RUN  if [ "$COPYLEFT_SOURCES" = "true" ]; then \
 # Expose any necessary ports (if needed for debugging/monitoring)
 EXPOSE 8080
 
-ARG TIMESERIES_UID
-ARG TIMESERIES_USER_NAME
+ARG TIMESERIES_UID=10001
+ARG TIMESERIES_USER_NAME=fusion
 
 RUN groupadd $TIMESERIES_USER_NAME -g $TIMESERIES_UID && \
     useradd -r -u $TIMESERIES_UID -g $TIMESERIES_USER_NAME $TIMESERIES_USER_NAME

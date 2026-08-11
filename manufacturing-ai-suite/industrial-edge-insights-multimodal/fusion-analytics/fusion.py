@@ -20,13 +20,13 @@ Key Features:
 """
 
 import paho.mqtt.client as mqtt
-import pandas as pd
 from collections import deque
 import os
 from typing import Dict, Optional, Any, Literal
 import json
 import threading
 import time
+from datetime import datetime, timezone
 from influxdb import InfluxDBClient as Influx1Client
 import logging
 import uvicorn
@@ -114,6 +114,25 @@ def combine_classifications(
     if v == t:
         return v
     return v if vision_confidence >= timeseries_confidence else t
+
+
+def parse_ts_string_to_ns(ts_str: str) -> int:
+    """Parse incoming timestamp strings into nanoseconds since epoch."""
+    cleaned = ts_str.strip().replace(" UTC", "+00:00")
+    if cleaned.endswith("Z"):
+        cleaned = f"{cleaned[:-1]}+00:00"
+
+    dt = datetime.fromisoformat(cleaned)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    dt_utc = dt.astimezone(timezone.utc)
+    return int(dt_utc.timestamp()) * 1_000_000_000 + dt_utc.microsecond * 1_000
+
+
+def ns_to_iso8601_utc(ts_ns: int) -> str:
+    """Convert epoch nanoseconds to RFC3339 UTC string."""
+    dt = datetime.fromtimestamp(ts_ns / 1_000_000_000, tz=timezone.utc)
+    return dt.isoformat().replace("+00:00", "Z")
 
 # ===================== UTILITY FUNCTIONS =====================
 
@@ -210,10 +229,9 @@ def on_message(client, userdata, msg):
         if msg.topic == TS_TOPIC:
             # Process time-series anomaly detection message
             ts_str = payload["time"]
-            ts_str = ts_str.replace(" UTC", "")  # Clean timestamp format
-            
+
             # Convert timestamp string to nanosecond epoch
-            ts_epoch = pd.to_datetime(ts_str).value
+            ts_epoch = parse_ts_string_to_ns(ts_str)
             payload["time"] = ts_epoch
             queues["ts"].append(payload)
             
@@ -248,7 +266,7 @@ def on_message(client, userdata, msg):
             # Write vision weld classification results to InfluxDB
             json_body = [{
                 "measurement": VISION_MEASUREMENT,
-                "time": pd.to_datetime(time, unit="ns").isoformat(),
+                "time": ns_to_iso8601_utc(int(time)),
                 "tags": {
                     "search_time": int(time),
                     "label": vision_classification,
@@ -485,7 +503,7 @@ def main():
                     
                     json_body = [{
                         "measurement": FUSION_MEASUREMENT,
-                        "time": pd.to_datetime(ts, unit="ns").isoformat(),
+                        "time": ns_to_iso8601_utc(int(ts)),
                         "tags": {
                             "fusion_classification": str(result["fusion_classification"]) if result["fusion_classification"] is not None else None
                         },
