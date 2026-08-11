@@ -159,7 +159,8 @@ def parse_ts_string_to_ns(ts_str: str) -> int:
 
 def ns_to_iso8601_utc(ts_ns: int) -> str:
     """Convert epoch nanoseconds to RFC3339 UTC string."""
-    dt = datetime.fromtimestamp(ts_ns / 1_000_000_000, tz=timezone.utc)
+    seconds, ns_remainder = divmod(int(ts_ns), 1_000_000_000)
+    dt = datetime.fromtimestamp(seconds, tz=timezone.utc).replace(microsecond=ns_remainder // 1_000)
     return dt.isoformat().replace("+00:00", "Z")
 
 # ===================== UTILITY FUNCTIONS =====================
