@@ -26,7 +26,7 @@ from typing import Dict, Optional, Any, Literal
 import json
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from influxdb import InfluxDBClient as Influx1Client
 import logging
 import uvicorn
@@ -118,15 +118,42 @@ def combine_classifications(
 
 def parse_ts_string_to_ns(ts_str: str) -> int:
     """Parse incoming timestamp strings into nanoseconds since epoch."""
-    cleaned = ts_str.strip().replace(" UTC", "+00:00")
+    cleaned = ts_str.strip()
+    # Common input shape from TS service: "YYYY-MM-DD HH:MM:SS.fffffffff +0000 UTC"
+    cleaned = re.sub(r"\s+UTC$", "", cleaned, flags=re.IGNORECASE)
     if cleaned.endswith("Z"):
         cleaned = f"{cleaned[:-1]}+00:00"
 
-    dt = datetime.fromisoformat(cleaned)
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    dt_utc = dt.astimezone(timezone.utc)
-    return int(dt_utc.timestamp()) * 1_000_000_000 + dt_utc.microsecond * 1_000
+    # Some payloads include a duplicated UTC offset, e.g. "+0000+00:00".
+    cleaned = re.sub(r"([+-]\d{4})([+-]\d{2}:\d{2})$", r"\1", cleaned)
+
+    # Accept either space or 'T' separator and optional timezone.
+    match = re.match(
+        r"^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})(?:\.(\d{1,9}))?(?:\s*([+-]\d{2}:?\d{2}))?$",
+        cleaned,
+    )
+    if not match:
+        raise ValueError(f"Unsupported timestamp format: {ts_str}")
+
+    date_part, time_part, frac_part, tz_part = match.groups()
+    frac_ns = int((frac_part or "").ljust(9, "0")[:9]) if frac_part else 0
+    micros = frac_ns // 1_000
+    ns_remainder = frac_ns % 1_000
+
+    tz_token = tz_part or "+0000"
+    tz_token = tz_token.replace(":", "")
+    sign = 1 if tz_token[0] == "+" else -1
+    tz_hours = int(tz_token[1:3])
+    tz_mins = int(tz_token[3:5])
+    offset = timezone(sign * timedelta(hours=tz_hours, minutes=tz_mins))
+
+    dt = datetime.strptime(f"{date_part} {time_part}", "%Y-%m-%d %H:%M:%S")
+    dt = dt.replace(microsecond=micros, tzinfo=offset).astimezone(timezone.utc)
+
+    epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
+    delta = dt - epoch
+    seconds = delta.days * 86_400 + delta.seconds
+    return seconds * 1_000_000_000 + dt.microsecond * 1_000 + ns_remainder
 
 
 def ns_to_iso8601_utc(ts_ns: int) -> str:
