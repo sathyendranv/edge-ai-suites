@@ -207,6 +207,7 @@ up: check_env_variables validate_host_ip down
 	export NGINX_CONFIG_PATH=./configs/nginx/nginx.conf; \
 	echo "Starting Docker containers..."; \
 	echo "GPU device path set to: $(DRI_MOUNT_PATH) based on its existence"; \
+	rm configs/grafana/provisioning/*.json; \
 	cp configs/grafana/dashboards_jsons/weld_defect_detection.json configs/grafana/provisioning/weld_defect_detection.json || exit 1; \
 	$(DOCKER_COMPOSE) up -d; \
 	$(MAKE) upload_tar_file
@@ -262,6 +263,7 @@ up_vllm: check_hardware check_models check_env_variables validate_host_ip down
 	export NGINX_CONFIG_PATH=./configs/nginx/nginx_vllm.conf; \
 	echo "Starting Docker containers..."; \
 	echo "GPU device path set to: $(DRI_MOUNT_PATH) based on its existence"; \
+	rm configs/grafana/provisioning/*.json; \
 	cp configs/grafana/dashboards_jsons/weld_defect_detection_vlm.json configs/grafana/provisioning/weld_defect_detection.json || exit 1; \
 	$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) -f $(DOCKER_COMPOSE_FILE_VLLM) up -d; \
 	$(MAKE) upload_tar_file
@@ -330,6 +332,7 @@ up_agentic: check_hardware check_models check_env_variables validate_host_ip dow
 	export NGINX_CONFIG_PATH=./configs/nginx/nginx_agentic.conf; \
 	echo "Starting Docker containers..."; \
 	echo "GPU device path set to: $(DRI_MOUNT_PATH) based on its existence"; \
+	rm configs/grafana/provisioning/*.json; \
 	cp configs/grafana/dashboards_jsons/weld_defect_detection_vlm.json configs/grafana/provisioning/weld_defect_detection.json || exit 1; \
 	cp configs/grafana/dashboards_jsons/weld_defect_detection_agentic.json configs/grafana/provisioning/weld_defect_detection_agentic.json || exit 1; \
 	$(MAKE) download_model; \
@@ -342,10 +345,14 @@ up_agentic: check_hardware check_models check_env_variables validate_host_ip dow
 .PHONY: status
 status:
 	@echo "Status of the deployed containers..."; \
-	docker ps -a --filter "name=^ia-" --filter "name=mr_" --filter "name=model_" --filter "name=wind-turbine" --format "table {{.ID}}\t{{.Names}}\t{{.Status}}\t{{.Ports}}"; \
+	docker ps -a \
+		--filter "network=timeseriessoftware_timeseries_network" \
+		--format "table {{.ID}}\t{{.Names}}\t{{.Status}}\t{{.Ports}}"; \
 	echo "Parsing the logs of all containers to catch any error messages..."; \
 	sleep 20; \
-	containers=$$(docker ps -a --filter "name=^ia-" --filter "name=mr_" --filter "name=model_" --filter "name=wind-turbine" --format "{{.Names}}"); \
+	containers=$$(docker ps -a \
+		--filter "network=timeseriessoftware_timeseries_network" \
+		--format "{{.Names}}"); \
 	failure_cont_flag=0; \
 	for container in $$containers; do \
 		errors=$$(docker logs --tail 5 $$container 2>&1 | grep -i "error"); \
