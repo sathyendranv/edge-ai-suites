@@ -241,8 +241,8 @@ check_hardware:
 		exit 1; \
 	fi; \
 	\
-	if ! echo "$$cpu_model" | grep -Eqi 'Core\(TM\)[[:space:]]+Ultra[[:space:]]+(7|X7)[[:space:]]+3[0-9]{2}[A-Z]*'; then \
-		echo "Error: Intel Core Ultra 7 3xx or Core Ultra X7 3xx processor is required."; \
+	if ! echo "$$cpu_model" | grep -Eqi 'Core\(TM\)[[:space:]]+Ultra[[:space:]]+([3579]|X[3579])[[:space:]]+3[0-9]{2}[A-Z]*'; then \
+		echo "Error: Intel Core Ultra 3xx processor is required."; \
 		echo "Detected: $$cpu_model"; \
 		exit 1; \
 	fi; \
