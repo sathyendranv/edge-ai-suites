@@ -160,9 +160,7 @@ Agent reasoning prompts are in `configs/agentic/prompts/weld-quality-monitoring.
    make status
    ```
 
-2. Ensure no error from `make status`
-
-3. Check the output in Grafana dashboard:
+2. Check the output in Grafana dashboard:
 
    - Use the link `https://localhost:3000` to open Grafana dashboard in a browser, preferably the Chrome browser. For Helm deployment, use the link `https://localhost:30001`.
    
