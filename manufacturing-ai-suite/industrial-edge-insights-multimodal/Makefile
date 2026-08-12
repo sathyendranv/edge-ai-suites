@@ -229,24 +229,32 @@ check_models:
 
 .PHONY: check_hardware
 check_hardware:
-	@echo "Checking hardware compatibility (Panther Lake or above required)..."
-	@cpu_model=$$(grep -m1 "model name" /proc/cpuinfo | cut -d: -f2 | xargs); \
+	@echo "Checking hardware compatibility (Intel Panther Lake / Core Ultra 3xx required)..."; \
+	cpu_model=$$(lscpu | awk -F: '/Model name:/ {gsub(/^[ \t]+/, "", $$2); print $$2; exit}'); \
+	cpu_vendor=$$(lscpu | awk -F: '/Vendor ID:/ {gsub(/^[ \t]+/, "", $$2); print $$2; exit}'); \
+	cpu_family=$$(lscpu | awk -F: '/CPU family:/ {gsub(/^[ \t]+/, "", $$2); print $$2; exit}'); \
+	cpu_model_id=$$(lscpu | awk -F: '/^Model:/ {gsub(/^[ \t]+/, "", $$2); print $$2; exit}'); \
 	echo "Detected CPU: $$cpu_model"; \
-	if ! echo "$$cpu_model" | grep -qi "intel"; then \
-		echo "Error: An Intel processor is required. Panther Lake (Core Ultra 3xx) or above."; \
+	\
+	if [ "$$cpu_vendor" != "GenuineIntel" ]; then \
+		echo "Error: An Intel processor is required."; \
 		exit 1; \
 	fi; \
-	model_num=$$(echo "$$cpu_model" | grep -oiP 'Ultra\s+[3579]\s+\K\d{3}'); \
-	if [ -z "$$model_num" ]; then \
-		echo "Error: Intel Core Ultra processor not detected. Panther Lake (Core Ultra 3xx) or above is required."; \
+	\
+	if ! echo "$$cpu_model" | grep -Eqi 'Core\(TM\)[[:space:]]+Ultra[[:space:]]+(7|X7)[[:space:]]+3[0-9]{2}[A-Z]*'; then \
+		echo "Error: Intel Core Ultra 7 3xx or Core Ultra X7 3xx processor is required."; \
+		echo "Detected: $$cpu_model"; \
 		exit 1; \
 	fi; \
-	gen=$$(echo "$$model_num" | cut -c1); \
-	if [ "$$gen" -lt 3 ]; then \
-		echo "Error: Panther Lake (Intel Core Ultra 3xx) or above is required. Detected: $$cpu_model"; \
+	\
+	if [ "$$cpu_family" != "6" ] || [ "$$cpu_model_id" != "204" ]; then \
+		echo "Error: Unsupported CPU platform."; \
+		echo "Required: Intel Panther Lake (Family 6, Model 204)."; \
+		echo "Detected: $$cpu_model (Family $$cpu_family, Model $$cpu_model_id)"; \
 		exit 1; \
 	fi; \
-	echo "Hardware check passed: Intel Core Ultra $${model_num} detected."
+	\
+	echo "Hardware check passed: $$cpu_model (Panther Lake)."
 
 .PHONY: up_vllm
 up_vllm: check_hardware check_models check_env_variables validate_host_ip down
