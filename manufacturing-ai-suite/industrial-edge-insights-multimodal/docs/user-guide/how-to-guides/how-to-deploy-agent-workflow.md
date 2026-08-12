@@ -169,7 +169,7 @@ Agent reasoning prompts are in `configs/agentic/prompts/weld-quality-monitoring.
    Expected containers:
    - `apm-agent` — LangGraph meta-agent
    - `apm-llm` — LLM service provided by OpenVINO model server
-   - `apm-ui` — UI (Dashboard)
+   - `multimodal-agentic-ui` — UI (Dashboard)
    - `apm-metrics` — Prometheus metrics collector (if enabled)
 
 3. Inspect agent logs:
@@ -187,7 +187,7 @@ Agent reasoning prompts are in `configs/agentic/prompts/weld-quality-monitoring.
 
      ![Grafana dashboard login](../_assets/login_wt.png)
 
-   - After logging in, click **Dashboards** and then select **Multimodal Weld Defect Detection Explainability Dashboard**:
+   - After logging in, click **Dashboards** and then select **Multimodal Weld Defect Detection - Agentic Dashboard**:
      ![Menu view](../_assets/grafana_agentic_dashboard.png)
 
    - The following pages appear:
