@@ -1,8 +1,8 @@
-# Weld VLM Fine-Tuning — Worked Example
+# VLM Fine-Tuning LORA Adapter - Welding Dataset
 
 This document is a concrete, **weld-defect-analysis** instance of the
 generic Unsloth VLM fine-tuning flow described in
-[`README.md`](README.md). Everything here — the input data schema, the
+[`README.md`](./how-to-fine-tune-vlm.md). Everything here — the input data schema, the
 prompt/response templates, and the actual commands run — is specific to
 this weld use case, built on top of the domain-agnostic scripts and
 concepts covered in `README.md`.
@@ -92,9 +92,9 @@ relatively small amount of LoRA fine-tuning.
 
    `output_prediction_details` must parse (via `ast.literal_eval`) into a
    dict shaped like the output of
-   [`classification-training`](../classification-training)'s
+   [`classification-training`](../../../training/classification-training)'s
    `WeldDefectPredictor` — see its
-   [Output Format](../classification-training/README.md#output-format)
+   [Output Format](../../../training/classification-training/README.md#output-format)
    section for the exact shape, e.g.:
 
    ```python
@@ -236,7 +236,7 @@ expects, instead of re-deriving the dataset per consumer.
 ## Step 3: Fine-Tune the Model (Weld Instance)
 
 `train_qwen.py` is the generic Unsloth + LoRA fine-tuning script described
-in [`README.md` — Step: Fine-Tune the Model](README.md#step-fine-tune-the-model).
+in [`README.md` — Step: Fine-Tune the Model](./how-to-fine-tune-vlm.md#step-fine-tune-the-model).
 For the weld dataset produced by Step 2 above, it is invoked as:
 
 ```bash
@@ -267,7 +267,7 @@ python train_qwen.py \
 ## Step 4: Run Inference (Weld Instance)
 
 `infer_qwen.py` is the generic inference script described in
-[`README.md` — Step: Run Inference](README.md#step-run-inference). Pointed
+[`README.md` — Step: Run Inference](./how-to-fine-tune-vlm.md#step-run-inference). Pointed
 at the weld adapter and dataset:
 
 ```bash
@@ -339,7 +339,7 @@ can be sourced from
 [IntelLabs/Intel_Robotic_Welding_Multimodal_Dataset](https://huggingface.co/datasets/IntelLabs/Intel_Robotic_Welding_Multimodal_Dataset)
 (Apache-2.0) — see that dataset's card for its own license terms. The
 generic toolkit license and third-party component licenses are listed in
-[`README.md` — License](README.md#license).
+[`README.md` — License](./how-to-fine-tune-vlm.md#license).
 
 For fine-tuning and inference on the dataset produced here, see
-[`README.md`](README.md).
+[`README.md`](./how-to-fine-tune-vlm.md).
