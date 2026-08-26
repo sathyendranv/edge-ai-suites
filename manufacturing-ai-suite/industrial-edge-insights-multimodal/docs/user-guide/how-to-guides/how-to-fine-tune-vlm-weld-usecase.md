@@ -2,7 +2,7 @@
 
 This document is a concrete, **weld-defect-analysis** instance of the
 generic Unsloth VLM fine-tuning flow described in
-[`README.md`](./how-to-fine-tune-vlm.md). Everything here — the input data schema, the
+[`Fine Tune a VLM`](./how-to-fine-tune-vlm.md). Everything here — the input data schema, the
 prompt/response templates, and the actual commands run — is specific to
 this weld use case, built on top of the domain-agnostic scripts and
 concepts covered in `README.md`.
@@ -11,7 +11,7 @@ Read `README.md` first for the generic pipeline, setup, and the
 Unsloth/LoRA concepts referenced below; this file only covers how those
 generic pieces are instantiated for weld data.
 
-| Generic stage (see `README.md`) | Weld-specific instance (this file) |
+| Generic stage | Weld-specific instance (this file) |
 |---|---|
 | Bring-your-own dataset prep → parquet | `prepare_weld_dataset.py` — [Step 1](#step-1-input-data) & [Step 2](#step-2-prepare-the-dataset) |
 | Fine-tune with `train_qwen.py` | Weld-specific invocation — [Step 3](#step-3-fine-tune-the-model-weld-instance) |
@@ -92,9 +92,9 @@ relatively small amount of LoRA fine-tuning.
 
    `output_prediction_details` must parse (via `ast.literal_eval`) into a
    dict shaped like the output of
-   [`classification-training`](../../../training/classification-training)'s
+   [`classification-training`](https://github.com/open-edge-platform/edge-ai-suites/tree/release-2026.2.0/manufacturing-ai-suite/industrial-edge-insights-multimodal/classification-training)'s
    `WeldDefectPredictor` — see its
-   [Output Format](../../../training/classification-training/README.md#output-format)
+   [Output Format](https://github.com/open-edge-platform/edge-ai-suites/blob/release-2026.2.0/manufacturing-ai-suite/industrial-edge-insights-multimodal/classification-training/README.md#output-format)
    section for the exact shape, e.g.:
 
    ```python

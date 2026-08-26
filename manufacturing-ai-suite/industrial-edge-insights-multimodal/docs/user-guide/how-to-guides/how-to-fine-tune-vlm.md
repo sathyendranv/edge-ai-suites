@@ -17,7 +17,7 @@ This directory is **not integrated** with the rest of
 repo. It is a self-contained data-prep + fine-tuning + inference workflow you
 run independently (e.g. on a dev box or training server) to produce a LoRA
 adapter. Once you have an adapter, you can serve it with the existing
-[`docker-compose-vllm.yml`](../../../docker-compose-vllm.yml) in this repo, or with
+`docker-compose-vllm.yml` in this repo, or with
 any OpenAI-compatible VLM server that supports LoRA adapters.
 
 ## Table of Contents
@@ -331,17 +331,13 @@ adapter from `train_qwen.py`. Output streams token-by-token to stdout via
   your PyTorch build matches your hardware (see [Setup](#setup)).
 - **Serving the adapter** — this directory only produces the adapter; to
   serve it with an OpenAI-compatible API, see
-  [`docker-compose-vllm.yml`](../../../docker-compose-vllm.yml) and
-  [`vllm.env`](../../../vllm.env) at the root of this component.
+  `docker-compose-vllm.yml`and `.env` under `VLLM config` section
 - **Dataset-prep issues** (missing files, split-ratio errors, malformed
   `conversation_json`, etc.) are specific to whichever dataset-prep script
   you use — see [Weld Worked Example — Data-Prep Troubleshooting](./how-to-fine-tune-vlm-weld-usecase.md#data-prep-troubleshooting)
   for the worked example's troubleshooting notes.
 
 ## License
-
-Licensed under the Apache License, Version 2.0. See the repository root
-[`LICENSE`](../../../../../LICENSE) file.
 
 Third-party components used by the scripts in this directory (see
 `requirements.txt`), each under their own upstream license:
