@@ -64,7 +64,7 @@ vlm-fine-tuning/
 ├── README.md                  # short pointer to this guide
 ├── requirements.txt           # pinned Python dependencies
 ├── common.py                  # shared chat-format / device-detection helpers
-├── prepare_weld_dataset.py    # weld-specific dataset prep (see the Weld Worked Example guide)
+├── prepare_weld_dataset.py    # weld-specific dataset prep (see the Weld Usecase guide)
 ├── train_qwen.py               # Generic LoRA fine-tuning (Unsloth + TRL)
 └── infer_qwen.py               # Generic standalone inference
 ```
@@ -141,7 +141,7 @@ any dataset-preparation step you bring:
 
 ```mermaid
 flowchart LR
-    subgraph S0["Your Dataset Prep\n(domain-specific — bring your own,\nsee the Weld Worked Example guide)"]
+    subgraph S0["Your Dataset Prep\n(domain-specific — bring your own,\nsee the Weld Usecase guide)"]
         direction TB
         A["Your raw data"] --> B["system/user/assistant\nconversations per sample"]
         B --> C["Parquet export\n(image + conversation_json columns)"]
@@ -334,7 +334,7 @@ adapter from `train_qwen.py`. Output streams token-by-token to stdout via
   `docker-compose-vllm.yml`and `.env` under `VLLM config` section
 - **Dataset-prep issues** (missing files, split-ratio errors, malformed
   `conversation_json`, etc.) are specific to whichever dataset-prep script
-  you use — see [Weld Worked Example — Data-Prep Troubleshooting](./how-to-fine-tune-vlm-weld-usecase.md#data-prep-troubleshooting)
+  you use — see [Weld Usecase — Data-Prep Troubleshooting](./how-to-fine-tune-vlm-weld-usecase.md#data-prep-troubleshooting)
   for the worked example's troubleshooting notes.
 
 ## License
@@ -351,4 +351,4 @@ Third-party components used by the scripts in this directory (see
 
 For the license of any dataset used with this toolkit, see the dataset's
 own license terms — e.g. for the weld worked example, see
-[Weld Worked Example — License / Dataset Attribution](./how-to-fine-tune-vlm-weld-usecase.md#license--dataset-attribution).
+[Weld Usecase — License / Dataset Attribution](./how-to-fine-tune-vlm-weld-usecase.md#license--dataset-attribution).
