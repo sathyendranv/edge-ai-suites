@@ -109,6 +109,19 @@ def _get_influx_client() -> InfluxDBClient:
     )
 
 
+def _normalize_iso_timestamp(value: str) -> str:
+    parsed = datetime.datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=datetime.timezone.utc)
+    else:
+        parsed = parsed.astimezone(datetime.timezone.utc)
+    return parsed.isoformat().replace("+00:00", "Z")
+
+
+def _normalize_numeric_timestamp(value: Any) -> int:
+    return int(value)
+
+
 def _fetch_rows(
     client: InfluxDBClient,
     page: int,
@@ -201,9 +214,9 @@ async def workbench_explain(request: Request):
 
     for time_str in selected_times:
         try:
-            datetime.datetime.fromisoformat(time_str.replace("Z", "+00:00"))
+            normalized_time = _normalize_iso_timestamp(time_str)
             measurement = _get_fusion_measurement_name()
-            query = f"SELECT * FROM {measurement} WHERE time = '{time_str}'"  # nosec B608
+            query = f"SELECT * FROM {measurement} WHERE time = '{normalized_time}'"  # nosec B608
             result = client.query(query)
             points = list(result.get_points())
             if not points:
@@ -215,10 +228,11 @@ async def workbench_explain(request: Request):
             if not vision_timestamp:
                 log.warning("No vision_timestamp found in fusion row for time=%s", time_str)
                 continue
+            normalized_vision_timestamp = _normalize_iso_timestamp(str(vision_timestamp))
 
             query_vision = (
                 'SELECT * FROM "vision-weld-classification-results" '
-                f"WHERE search_time = '{vision_timestamp}'"
+                f"WHERE search_time = '{normalized_vision_timestamp}'"
             )  # nosec B608
             result_vision = client.query(query_vision)
             points_vision = list(result_vision.get_points())
@@ -246,9 +260,10 @@ async def workbench_explain(request: Request):
                     }
                 )
 
+            normalized_sensor_timestamp = _normalize_numeric_timestamp(row.get("timeseries_timestamp"))
             query_sensor = (
                 f'SELECT * FROM "weld-sensor-anomaly-data" '
-                f"WHERE time = {points[0]['timeseries_timestamp']}"
+                f"WHERE time = {normalized_sensor_timestamp}"
             )  # nosec B608
             result_sensor = client.query(query_sensor)
             points_sensor = list(result_sensor.get_points())

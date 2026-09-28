@@ -167,3 +167,64 @@ def test_insights_data_api_handles_influx_error(client, monkeypatch):
     r = client.get("/insights/api/data")
     assert_condition(r.status_code == 500)
     assert_condition(r.json()["error"] == "Unable to load data")
+
+
+def test_insights_explain_rejects_invalid_time(client, monkeypatch):
+    monkeypatch.setattr(workbench, "_get_influx_client", lambda: object())
+
+    r = client.post("/insights/api/explain", json={"selected_times": ["not-a-time"]})
+    assert_condition(r.status_code == 400)
+    assert_condition("Invalid time format" in r.json()["error"])
+
+
+def test_insights_explain_handles_vllm_error(client, monkeypatch):
+    class FakeQueryResult:
+        def __init__(self, points):
+            self._points = points
+
+        def get_points(self):
+            return iter(self._points)
+
+    class FakeInfluxClient:
+        def query(self, query):
+            if "vision-weld-classification-results" in query:
+                return FakeQueryResult([])
+            if "weld-sensor-anomaly-data" in query:
+                return FakeQueryResult(
+                    [
+                        {
+                            "Primary Weld Current": 10,
+                            "Secondary Weld Voltage": 20,
+                            "Pressure": 30,
+                            "CO2 Weld Flow": 40,
+                            "Feed": 50,
+                            "Wire Consumed": 60,
+                        }
+                    ]
+                )
+            return FakeQueryResult(
+                [
+                    {
+                        "vision_timestamp": "2026-01-01T00:00:00Z",
+                        "timeseries_timestamp": "1704067200000000000",
+                    }
+                ]
+            )
+
+    class FailingCompletions:
+        @staticmethod
+        def create(**kwargs):
+            raise RuntimeError("vllm unavailable")
+
+    class FailingChat:
+        completions = FailingCompletions()
+
+    class FailingClient:
+        chat = FailingChat()
+
+    monkeypatch.setattr(workbench, "_get_influx_client", lambda: FakeInfluxClient())
+    monkeypatch.setattr(workbench, "_get_vllm_client", lambda: FailingClient())
+
+    r = client.post("/insights/api/explain", json={"selected_times": ["2026-01-01T00:00:00Z"]})
+    assert_condition(r.status_code == 500)
+    assert_condition(r.json()["error"] == "Unable to generate explanation")
