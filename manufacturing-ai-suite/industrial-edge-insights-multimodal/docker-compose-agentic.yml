@@ -210,10 +210,25 @@ services:
     environment:
       http_proxy: ${http_proxy:-}
       https_proxy: ${https_proxy:-}
-      no_proxy: ${no_proxy:-},apm-agent,apm-detection,ia-fusion-analytics,localhost,ia-mqtt-broker
+      no_proxy: ${no_proxy:-},apm-agent,apm-detection,ia-fusion-analytics,localhost,ia-mqtt-broker,ia-influxdb,vllm-server,seaweedfs-filer
+      NO_PROXY: ${no_proxy:-},apm-agent,apm-detection,ia-fusion-analytics,localhost,ia-mqtt-broker,ia-influxdb,vllm-server,seaweedfs-filer
       AGENT_SERVICE_URL: http://apm-agent:5002
       DETECTION_SERVICE_URL: http://apm-detection:5004
       STORAGE_SERVICE_URL: http://ia-fusion-analytics:8080
+      INFLUX_HOST: ia-influxdb
+      INFLUX_PORT: 8086
+      INFLUX_USER: ${INFLUXDB_USERNAME}
+      INFLUX_PASSWORD: ${INFLUXDB_PASSWORD}
+      INFLUX_DB: datain
+      FUSION_MEASUREMENT: fusion_result
+      OBJECT_STORE_URL: http://seaweedfs-filer:8888
+      BUCKET_NAME: dlstreamer-pipeline-results/weld-defect-classification
+      VLLM_HOST: vllm-server
+      VLLM_PORT: ${VLLM_PORT}
+      VLLM_CLIENT_TEMPERATURE: ${VLLM_CLIENT_TEMPERATURE}
+      VLLM_CLIENT_TOKEN: ${VLLM_CLIENT_TOKEN}
+      VLLM_CLIENT_MIN_P: ${VLLM_CLIENT_MIN_P}
+      VLLM_ADAPTER_NAME: ${VLLM_ADAPTER_NAME}
       HOST: 0.0.0.0
       PORT: 5003
       LOG_LEVEL: ${LOG_LEVEL:-INFO}

@@ -16,6 +16,7 @@ import respx
 import httpx
 from fastapi.testclient import TestClient
 from src.app import app
+from src import workbench
 
 
 def assert_condition(condition, message=""):
@@ -37,7 +38,7 @@ def test_index_no_data(client):
     respx.get("http://mock-detection/detection/videos").mock(return_value=httpx.Response(200, json={"videos": []}))
     r = client.get("/")
     assert_condition(r.status_code == 200)
-    assert_condition("Agentic Predictive Maintenance" in r.text)
+    assert_condition("Agentic Weld Quality Analysis" in r.text)
 
 
 @respx.mock
@@ -88,3 +89,234 @@ def test_health(client):
     assert_condition(r.status_code == 200)
     assert_condition(r.json()["service"] == "ui-service")
     assert_condition(r.json()["use_case_id"] == "test-case")
+
+
+def test_insights_page(client):
+    r = client.get("/insights")
+    assert_condition(r.status_code == 200)
+    assert_condition("Insights Workbench" in r.text)
+    assert_condition("const APP_BASE_PATH = \"/insights\"" in r.text)
+
+
+def test_insights_measurements_api(client):
+    r = client.get("/insights/api/measurements")
+    assert_condition(r.status_code == 200)
+    assert_condition(r.json()["measurements"] == ["fusion_result"])
+
+
+def test_dashboard_nav_includes_insights(client):
+    with respx.mock:
+        respx.get("http://mock-storage/detections/summary").mock(return_value=httpx.Response(200, json={}))
+        respx.get("http://mock-agent/agents/runs").mock(return_value=httpx.Response(200, json=[]))
+        respx.get("http://mock-detection/detection/videos").mock(return_value=httpx.Response(200, json={"videos": []}))
+        r = client.get("/")
+    assert_condition(r.status_code == 200)
+    assert_condition("Insights Workbench" in r.text)
+
+
+def test_insights_data_api(client, monkeypatch):
+    class FakeQueryResult:
+        def __init__(self, points):
+            self._points = points
+
+        def get_points(self):
+            return iter(self._points)
+
+    class FakeInfluxClient:
+        def query(self, query):
+            assert "fusion_result" in query
+            return FakeQueryResult(
+                [
+                    {
+                        "time": "2026-01-01T00:00:00Z",
+                        "timeseries_classification": "good",
+                        "vision_classification": "good",
+                        "fused_decision": "good",
+                    }
+                ]
+            )
+
+    monkeypatch.setattr(workbench, "_get_influx_client", lambda: FakeInfluxClient())
+
+    r = client.get("/insights/api/data?page=1&page_size=10")
+    assert_condition(r.status_code == 200)
+    payload = r.json()
+    assert_condition(payload["has_more"] is False)
+    assert_condition(payload["rows"][0]["fused_decision"] == "good")
+
+
+def test_insights_data_api_normalizes_pagination(client, monkeypatch):
+    class FakeQueryResult:
+        def get_points(self):
+            return iter([])
+
+    class FakeInfluxClient:
+        def query(self, query):
+            assert "LIMIT 201 OFFSET 0" in query
+            return FakeQueryResult()
+
+    monkeypatch.setattr(workbench, "_get_influx_client", lambda: FakeInfluxClient())
+
+    r = client.get("/insights/api/data?page=0&page_size=999")
+    assert_condition(r.status_code == 200)
+    payload = r.json()
+    assert_condition(payload["page"] == 1)
+    assert_condition(payload["page_size"] == 200)
+
+
+def test_insights_data_api_handles_influx_error(client, monkeypatch):
+    def raise_influx_error():
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(workbench, "_get_influx_client", raise_influx_error)
+
+    r = client.get("/insights/api/data")
+    assert_condition(r.status_code == 500)
+    assert_condition(r.json()["error"] == "Unable to load data")
+
+
+def test_insights_explain_rejects_invalid_time(client, monkeypatch):
+    monkeypatch.setattr(workbench, "_get_influx_client", lambda: object())
+
+    r = client.post("/insights/api/explain", json={"selected_times": ["not-a-time"]})
+    assert_condition(r.status_code == 400)
+    assert_condition("Invalid time format" in r.json()["error"])
+
+
+def test_insights_explain_handles_vllm_error(client, monkeypatch):
+    class FakeQueryResult:
+        def __init__(self, points):
+            self._points = points
+
+        def get_points(self):
+            return iter(self._points)
+
+    class FakeInfluxClient:
+        def query(self, query):
+            if "vision-weld-classification-results" in query:
+                return FakeQueryResult([])
+            if "weld-sensor-anomaly-data" in query:
+                return FakeQueryResult(
+                    [
+                        {
+                            "Primary Weld Current": 10,
+                            "Secondary Weld Voltage": 20,
+                            "Pressure": 30,
+                            "CO2 Weld Flow": 40,
+                            "Feed": 50,
+                            "Wire Consumed": 60,
+                        }
+                    ]
+                )
+            return FakeQueryResult(
+                [
+                    {
+                        "vision_timestamp": "2026-01-01T00:00:00Z",
+                        "timeseries_timestamp": "1704067200000000000",
+                    }
+                ]
+            )
+
+    class FailingCompletions:
+        @staticmethod
+        def create(**kwargs):
+            raise RuntimeError("vllm unavailable")
+
+    class FailingChat:
+        completions = FailingCompletions()
+
+    class FailingClient:
+        chat = FailingChat()
+
+    monkeypatch.setattr(workbench, "_get_influx_client", lambda: FakeInfluxClient())
+    monkeypatch.setattr(workbench, "_get_vllm_client", lambda: FailingClient())
+
+    r = client.post("/insights/api/explain", json={"selected_times": ["2026-01-01T00:00:00Z"]})
+    assert_condition(r.status_code == 500)
+    assert_condition(r.json()["error"] == "Unable to generate explanation")
+
+
+def test_insights_explain_handles_influx_client_error(client, monkeypatch):
+    def raise_influx_error():
+        raise RuntimeError("influx unavailable")
+
+    monkeypatch.setattr(workbench, "_get_influx_client", raise_influx_error)
+
+    r = client.post("/insights/api/explain", json={"selected_times": ["2026-01-01T00:00:00Z"]})
+    assert_condition(r.status_code == 500)
+    assert_condition(r.json()["error"] == "Unable to process explain request")
+
+
+def test_insights_explain_success_response_shape(client, monkeypatch):
+    class FakeQueryResult:
+        def __init__(self, points):
+            self._points = points
+
+        def get_points(self):
+            return iter(self._points)
+
+    class FakeInfluxClient:
+        def query(self, query):
+            if "vision-weld-classification-results" in query:
+                return FakeQueryResult([{"frame_id": 7, "img_handle": "frame-7"}])
+            if "weld-sensor-anomaly-data" in query:
+                return FakeQueryResult(
+                    [
+                        {
+                            "Primary Weld Current": 10,
+                            "Secondary Weld Voltage": 20,
+                            "Pressure": 30,
+                            "CO2 Weld Flow": 40,
+                            "Feed": 50,
+                            "Wire Consumed": 60,
+                        }
+                    ]
+                )
+            return FakeQueryResult(
+                [
+                    {
+                        "vision_timestamp": "2026-01-01T00:00:00Z",
+                        "timeseries_timestamp": "1704067200000000000",
+                    }
+                ]
+            )
+
+    class FakeChoice:
+        class Message:
+            content = "Structured response"
+
+        message = Message()
+
+    class FakeResponse:
+        choices = [FakeChoice()]
+
+    class FakeCompletions:
+        @staticmethod
+        def create(**kwargs):
+            return FakeResponse()
+
+    class FakeChat:
+        completions = FakeCompletions()
+
+    class FakeClient:
+        chat = FakeChat()
+
+    monkeypatch.setattr(workbench, "_get_influx_client", lambda: FakeInfluxClient())
+    monkeypatch.setattr(workbench, "_get_vllm_client", lambda: FakeClient())
+    monkeypatch.setattr(workbench, "_build_image_data_url", lambda url: "data:image/jpeg;base64,AAA")
+
+    r = client.post("/insights/api/explain", json={"selected_times": ["2026-01-01T00:00:00Z"]})
+    assert_condition(r.status_code == 200)
+    payload = r.json()
+    assert_condition(payload["markdown"] == "Structured response")
+    assert_condition(len(payload["resolved_images"]) == 1)
+    assert_condition(len(payload["ts_data"]) == 1)
+    assert_condition(payload["resolved_images"][0]["img_handle"] == "frame-7")
+
+
+def test_insights_explain_rejects_too_many_timestamps(client):
+    selected_times = [f"2026-01-01T00:00:0{i}Z" for i in range(6)]
+
+    r = client.post("/insights/api/explain", json={"selected_times": selected_times})
+    assert_condition(r.status_code == 400)
+    assert_condition("Select at most 5 timestamps" in r.json()["error"])
