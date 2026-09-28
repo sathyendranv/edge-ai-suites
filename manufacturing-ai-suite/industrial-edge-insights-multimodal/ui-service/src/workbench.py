@@ -7,6 +7,7 @@ import json
 import logging
 import mimetypes
 import os
+import re
 from typing import Any
 from urllib.request import urlopen
 
@@ -23,6 +24,8 @@ _src_dir = os.path.dirname(__file__)
 _templates = Jinja2Templates(directory=os.path.join(_src_dir, "templates"))
 
 router = APIRouter(prefix="/insights")
+_MEASUREMENT_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+_MAX_SELECTED_TIMES = 5
 
 
 class ExplainRequest(BaseModel):
@@ -89,7 +92,11 @@ def _get_query_prompt() -> dict[str, Any]:
 
 
 def _get_fusion_measurement_name() -> str:
-    return os.getenv("FUSION_MEASUREMENT", "fusion_result")
+    measurement = os.getenv("FUSION_MEASUREMENT", "fusion_result")
+    if not _MEASUREMENT_RE.fullmatch(measurement):
+        log.warning("Invalid FUSION_MEASUREMENT=%s; falling back to fusion_result", measurement)
+        return "fusion_result"
+    return measurement
 
 
 def _get_vllm_health_url() -> str:
@@ -215,6 +222,12 @@ def workbench_vllm_health():
 @router.post("/api/explain")
 async def workbench_explain(payload: ExplainRequest):
     selected_times = payload.selected_times
+    if len(selected_times) > _MAX_SELECTED_TIMES:
+        return JSONResponse(
+            {"error": f"Select at most {_MAX_SELECTED_TIMES} timestamps per request"},
+            status_code=400,
+        )
+
     log.info("Explain request received with %d selected time(s)", len(selected_times))
     ts_data: list[str] = []
     resolved_images: list[dict[str, Any]] = []

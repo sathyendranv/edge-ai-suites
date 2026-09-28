@@ -511,10 +511,10 @@
         <div id="pageInfo">Page 1</div>
         <div id="status" class="status">Loading data...</div>
         <div class="pager">
-          <button id="explainBtn" class="explain-btn" disabled>Explain</button>
-          <button id="prevBtn">Previous</button>
-          <button id="nextBtn">Next</button>
-          <button id="resetBtn">Reset</button>
+          <button id="explainBtn" type="button" class="explain-btn" disabled>Explain</button>
+          <button id="prevBtn" type="button">Previous</button>
+          <button id="nextBtn" type="button">Next</button>
+          <button id="resetBtn" type="button">Reset</button>
         </div>
       </div>
 
@@ -756,7 +756,7 @@
       updateExplainButtonState();
       explainOutput.hidden = false;
       explainHeader.textContent = "AI Assistant Output";
-      explainBody.innerHTML = '<div class="spinner-wrap"><span class="spinner" aria-hidden="true"></span><span>Generating analysis...</span></div>';
+      explainBody.innerHTML = '<div class="spinner-wrap" role="status" aria-live="polite"><span class="spinner" aria-hidden="true"></span><span>Generating analysis...</span></div>';
       setStatus("Generating explanation...");
 
       try {
@@ -874,6 +874,7 @@
     let vllmHelpTimerId = null;
     let vllmReadinessTimeoutId = null;
     let vllmPollingEnabled = true;
+    let vllmCheckInFlight = false;
 
     function revealVllmFallback() {
       vllmSublabel.textContent = "vLLM is still starting. You can retry now or continue browsing the workbench without AI explanations.";
@@ -891,6 +892,9 @@
     }
 
     retryVllmBtn.addEventListener("click", () => {
+      if (vllmReadinessTimeoutId) {
+        clearTimeout(vllmReadinessTimeoutId);
+      }
       vllmSublabel.textContent = "Checking vLLM availability again…";
       checkVllmReady();
     });
@@ -900,6 +904,11 @@
       if (!vllmPollingEnabled) {
         return false;
       }
+      if (vllmCheckInFlight) {
+        return false;
+      }
+
+      vllmCheckInFlight = true;
 
       try {
         const res = await fetch(buildApiUrl("/api/vllm/health"));
@@ -915,6 +924,8 @@
         }
       } catch (_) {
         // server not yet reachable — keep waiting
+      } finally {
+        vllmCheckInFlight = false;
       }
       return false;
     }
