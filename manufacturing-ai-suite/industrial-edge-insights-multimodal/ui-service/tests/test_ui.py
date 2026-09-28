@@ -16,6 +16,7 @@ import respx
 import httpx
 from fastapi.testclient import TestClient
 from src.app import app
+from src import workbench
 
 
 def assert_condition(condition, message=""):
@@ -88,3 +89,51 @@ def test_health(client):
     assert_condition(r.status_code == 200)
     assert_condition(r.json()["service"] == "ui-service")
     assert_condition(r.json()["use_case_id"] == "test-case")
+
+
+def test_insights_page(client):
+    r = client.get("/insights")
+    assert_condition(r.status_code == 200)
+    assert_condition("Insights Workbench" in r.text)
+    assert_condition("const APP_BASE_PATH = \"/insights\"" in r.text)
+
+
+def test_dashboard_nav_includes_insights(client):
+    with respx.mock:
+        respx.get("http://mock-storage/detections/summary").mock(return_value=httpx.Response(200, json={}))
+        respx.get("http://mock-agent/agents/runs").mock(return_value=httpx.Response(200, json=[]))
+        respx.get("http://mock-detection/detection/videos").mock(return_value=httpx.Response(200, json={"videos": []}))
+        r = client.get("/")
+    assert_condition(r.status_code == 200)
+    assert_condition("Insights Workbench" in r.text)
+
+
+def test_insights_data_api(client, monkeypatch):
+    class FakeQueryResult:
+        def __init__(self, points):
+            self._points = points
+
+        def get_points(self):
+            return iter(self._points)
+
+    class FakeInfluxClient:
+        def query(self, query):
+            assert "fusion_result" in query
+            return FakeQueryResult(
+                [
+                    {
+                        "time": "2026-01-01T00:00:00Z",
+                        "timeseries_classification": "good",
+                        "vision_classification": "good",
+                        "fused_decision": "good",
+                    }
+                ]
+            )
+
+    monkeypatch.setattr(workbench, "_get_influx_client", lambda: FakeInfluxClient())
+
+    r = client.get("/insights/api/data?page=1&page_size=10")
+    assert_condition(r.status_code == 200)
+    payload = r.json()
+    assert_condition(payload["has_more"] is False)
+    assert_condition(payload["rows"][0]["fused_decision"] == "good")

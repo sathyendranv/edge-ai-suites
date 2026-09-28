@@ -88,11 +88,8 @@ services:
     hostname: ia-insights-workbench
     image: ${DOCKER_REGISTRY}${WORKBENCH_INSIGHTS_IMAGE}:${IMAGE_SUFFIX:-latest}${WEEKLY_BUILD_DATE:+-${WEEKLY_BUILD_DATE}}${WEEKLY_BUILD_DATE:+-weekly}
     build:
-      context: $PWD/insights-workbench
-      dockerfile: $PWD/insights-workbench/Dockerfile
-      args:
-        TIMESERIES_USER_NAME: ${TIMESERIES_USER_NAME}
-        TIMESERIES_UID: ${TIMESERIES_UID}
+      context: $PWD/ui-service
+      dockerfile: $PWD/ui-service/Dockerfile
     restart: unless-stopped
     depends_on:
       - ia-influxdb
@@ -118,6 +115,8 @@ services:
       VLLM_CLIENT_TOKEN: ${VLLM_CLIENT_TOKEN}
       VLLM_CLIENT_MIN_P: ${VLLM_CLIENT_MIN_P}
       VLLM_ADAPTER_NAME: ${VLLM_ADAPTER_NAME}
+      UI_DEFAULT_PAGE: insights
+      UI_ENABLE_AGENTIC_TABS: "false"
     networks:
       - timeseries_network
 

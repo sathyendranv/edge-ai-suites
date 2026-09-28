@@ -33,6 +33,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import PlainTextResponse
+from src.workbench import router as workbench_router
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -49,6 +50,7 @@ _MQTT_QOS      = int(os.environ.get("MQTT_QOS",          "1"))
 _MQTT_KEEPALIVE = int(os.environ.get("MQTT_KEEPALIVE",   "60"))
 _MQTT_CLIENT_ID = os.environ.get("MQTT_CLIENT_ID",       "apm-ui-service")
 _MQTT_DISABLED = os.environ.get("MQTT_DISABLED",         "false").lower() == "true"
+_DEFAULT_PAGE = os.environ.get("UI_DEFAULT_PAGE", "dashboard").lower()
 
 
 _start_time = time.time()
@@ -65,6 +67,7 @@ app = FastAPI(
 _src_dir = os.path.dirname(__file__)
 app.mount("/static", StaticFiles(directory=os.path.join(_src_dir, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(_src_dir, "templates"))
+app.include_router(workbench_router)
 
 _mqtt_client: Optional[mqtt.Client] = None
 _mqtt_connected = threading.Event()
@@ -212,6 +215,23 @@ def _redirect_path(request: Request, route_name: str, **path_params: str) -> str
     return f"{root_path}{app.url_path_for(route_name, **path_params)}"
 
 
+def _dashboard_href(request: Request) -> str:
+    route_name = "dashboard_page" if _DEFAULT_PAGE == "insights" else "root_page"
+    return _redirect_path(request, route_name)
+
+
+def _insights_href(request: Request) -> str:
+    return _redirect_path(request, "workbench_page")
+
+
+def _common_context(request: Request, active_tab: str) -> dict[str, str]:
+    return {
+        "active_tab": active_tab,
+        "dashboard_href": _dashboard_href(request),
+        "insights_href": _insights_href(request),
+    }
+
+
 # ── Run merging helpers ────────────────────────────────────────────────────────
 
 def _merge_runs(agent_runs: list[dict]) -> list[dict]:
@@ -277,8 +297,15 @@ async def _fetch_run_view(client: httpx.AsyncClient, run_id: str) -> dict:
 
 # ── Pages ─────────────────────────────────────────────────────────────────────
 
-@app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
+@app.get("/", response_class=HTMLResponse, name="root_page")
+async def root_page(request: Request):
+    if _DEFAULT_PAGE == "insights":
+        return RedirectResponse(url=_insights_href(request), status_code=307)
+    return await dashboard_page(request)
+
+
+@app.get("/dashboard", response_class=HTMLResponse, name="dashboard_page")
+async def dashboard_page(request: Request):
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
         summary, runs = await _fetch_summary_and_runs(client)
         videos = await _fetch_videos(client)
@@ -294,6 +321,7 @@ async def index(request: Request):
             "active_run": active_run,
             "videos": videos,
             "devices": ["CPU", "GPU", "NPU"],
+            **_common_context(request, "dashboard"),
         },
     )
 
@@ -369,6 +397,7 @@ async def detections_page(
             "filter_confidence": parsed_confidence if parsed_confidence is not None else "",
             "filter_limit": limit,
             "total_count": total_count,
+            **_common_context(request, "detections"),
         },
     )
 
@@ -383,6 +412,7 @@ async def results_page(request: Request, run_id: str):
         context={
             "use_case_id": _USE_CASE_ID, "run_id": run_id,
             "result": view["result"], "phase": view["phase"],
+            **_common_context(request, "results"),
         },
     )
 
