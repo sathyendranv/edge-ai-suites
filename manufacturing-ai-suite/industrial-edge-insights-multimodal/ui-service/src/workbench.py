@@ -92,6 +92,10 @@ def _get_vllm_health_url() -> str:
     return f"http://{host}:{port}/docs"
 
 
+def _get_vllm_max_tokens() -> int:
+    return int(os.getenv("VLLM_MAX_TOKENS", os.getenv("VLLM_CLIENT_TOKEN", "2048")))
+
+
 def _get_influx_client() -> InfluxDBClient:
     host = os.getenv("INFLUX_HOST", "localhost")
     port = int(os.getenv("INFLUX_PORT", "8086"))
@@ -310,7 +314,7 @@ async def workbench_explain(request: Request):
         response = _get_vllm_client().chat.completions.create(
             model=os.getenv("VLLM_ADAPTER_NAME", "qwen3.5-2b-adapter"),
             messages=[_get_query_prompt(), message],
-            max_tokens=int(os.getenv("VLLM_CLIENT_TOKEN", "2048")),
+            max_tokens=_get_vllm_max_tokens(),
             temperature=float(os.getenv("VLLM_CLIENT_TEMPERATURE", "1.5")),
             extra_body={
                 "min_p": float(os.getenv("VLLM_CLIENT_MIN_P", "0.1")),

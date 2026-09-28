@@ -419,6 +419,17 @@
       text-align: center;
     }
 
+    .vllm-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .vllm-actions button {
+      cursor: pointer;
+    }
+
     @media (max-width: 700px) {
       .header {
         flex-direction: column;
@@ -464,6 +475,10 @@
     <div class="vllm-spinner" aria-hidden="true"></div>
     <div class="vllm-label" id="vllmLabel">Starting vLLM server&hellip;</div>
     <div class="vllm-sublabel" id="vllmSublabel">This may take a few minutes. Checking again in 30s.</div>
+    <div class="vllm-actions">
+      <button id="retryVllmBtn" type="button">Retry now</button>
+      <button id="continueWorkbenchBtn" type="button" hidden>Continue without vLLM</button>
+    </div>
   </div>
 
   <div class="wrap">
@@ -757,32 +772,38 @@
         explainBody.innerHTML = '';
 
         // Display image and time-series data in a two-column table
-        if (payload.resolved_images && payload.resolved_images.length > 0 && payload.ts_data && payload.ts_data.length > 0) {
-          const imgData = payload.resolved_images[0];
-          const tsData = payload.ts_data[0];
-          const imageUrl = imgData.image_load_url || imgData.image_url;
-
+        const pairCount = Math.max(payload.resolved_images?.length || 0, payload.ts_data?.length || 0);
+        if (pairCount > 0) {
           const dataTable = document.createElement('table');
           dataTable.className = 'data-display-table';
 
           const tbody = document.createElement('tbody');
-          const row = document.createElement('tr');
 
-          // Left column: Image
-          const leftCell = document.createElement('td');
-          const img = document.createElement('img');
-          img.src = imageUrl;
-          leftCell.appendChild(img);
+          for (let index = 0; index < pairCount; index += 1) {
+            const imgData = payload.resolved_images?.[index];
+            const tsData = payload.ts_data?.[index] || '';
+            const row = document.createElement('tr');
 
-          // Right column: Time-series data
-          const rightCell = document.createElement('td');
-          rightCell.textContent = tsData;
+            const leftCell = document.createElement('td');
+            const imageUrl = imgData?.image_load_url || imgData?.image_url;
+            if (imageUrl) {
+              const img = document.createElement('img');
+              img.src = imageUrl;
+              img.alt = `Weld image ${index + 1}`;
+              leftCell.appendChild(img);
+            } else {
+              leftCell.textContent = 'No image available';
+            }
 
-          row.appendChild(leftCell);
-          row.appendChild(rightCell);
-          tbody.appendChild(row);
+            const rightCell = document.createElement('td');
+            rightCell.textContent = tsData || 'No sensor data available';
+
+            row.appendChild(leftCell);
+            row.appendChild(rightCell);
+            tbody.appendChild(row);
+          }
+
           dataTable.appendChild(tbody);
-
           explainBody.appendChild(dataTable);
         }
 
@@ -830,19 +851,43 @@
     const vllmOverlay  = document.getElementById("vllmOverlay");
     const vllmLabel    = document.getElementById("vllmLabel");
     const vllmSublabel = document.getElementById("vllmSublabel");
+    const retryVllmBtn = document.getElementById("retryVllmBtn");
+    const continueWorkbenchBtn = document.getElementById("continueWorkbenchBtn");
     const VLLM_POLL_MS = 30_000;
+    const VLLM_HELP_AFTER_MS = 90_000;
     const PHASE_LABELS = [
       "Starting vLLM server\u2026",
       "Loading model\u2026",
       "Initializing\u2026",
     ];
     let vllmPhase = 0;
+    let vllmHelpTimerId = null;
+
+    function revealVllmFallback() {
+      vllmSublabel.textContent = "vLLM is still starting. You can retry now or continue browsing the workbench without AI explanations.";
+      continueWorkbenchBtn.hidden = false;
+    }
+
+    function continueWithoutVllm() {
+      vllmOverlay.classList.add("hidden");
+      loadPage();
+      updateExplainButtonState();
+    }
+
+    retryVllmBtn.addEventListener("click", () => {
+      vllmSublabel.textContent = "Checking vLLM availability again…";
+      checkVllmReady();
+    });
+    continueWorkbenchBtn.addEventListener("click", continueWithoutVllm);
 
     async function checkVllmReady() {
       try {
         const res = await fetch(buildApiUrl("/api/vllm/health"));
         const data = await res.json();
         if (data.accessible === true) {
+          if (vllmHelpTimerId) {
+            clearTimeout(vllmHelpTimerId);
+          }
           vllmOverlay.classList.add("hidden");
           loadPage();
           updateExplainButtonState();
@@ -863,6 +908,8 @@
 
       setTimeout(vllmReadinessLoop, VLLM_POLL_MS);
     }
+
+    vllmHelpTimerId = setTimeout(revealVllmFallback, VLLM_HELP_AFTER_MS);
 
     // Kick off: check immediately, then poll every 30 s until ready.
     // Main loadPage() is deferred until the overlay clears.
