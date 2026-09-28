@@ -137,3 +137,33 @@ def test_insights_data_api(client, monkeypatch):
     payload = r.json()
     assert_condition(payload["has_more"] is False)
     assert_condition(payload["rows"][0]["fused_decision"] == "good")
+
+
+def test_insights_data_api_normalizes_pagination(client, monkeypatch):
+    class FakeQueryResult:
+        def get_points(self):
+            return iter([])
+
+    class FakeInfluxClient:
+        def query(self, query):
+            assert "LIMIT 201 OFFSET 0" in query
+            return FakeQueryResult()
+
+    monkeypatch.setattr(workbench, "_get_influx_client", lambda: FakeInfluxClient())
+
+    r = client.get("/insights/api/data?page=0&page_size=999")
+    assert_condition(r.status_code == 200)
+    payload = r.json()
+    assert_condition(payload["page"] == 1)
+    assert_condition(payload["page_size"] == 200)
+
+
+def test_insights_data_api_handles_influx_error(client, monkeypatch):
+    def raise_influx_error():
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(workbench, "_get_influx_client", raise_influx_error)
+
+    r = client.get("/insights/api/data")
+    assert_condition(r.status_code == 500)
+    assert_condition(r.json()["error"] == "Unable to load data")

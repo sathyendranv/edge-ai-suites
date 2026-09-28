@@ -289,15 +289,19 @@ async def workbench_explain(request: Request):
             log.exception("Explain processing failed for time=%s", time_str)
             return JSONResponse({"error": "Unable to process explain request"}, status_code=500)
 
-    response = _get_vllm_client().chat.completions.create(
-        model=os.getenv("VLLM_ADAPTER_NAME", "qwen3.5-2b-adapter"),
-        messages=[_get_query_prompt(), message],
-        max_tokens=int(os.getenv("VLLM_CLIENT_TOKEN", "2048")),
-        temperature=float(os.getenv("VLLM_CLIENT_TEMPERATURE", "1.5")),
-        extra_body={
-            "min_p": float(os.getenv("VLLM_CLIENT_MIN_P", "0.1")),
-        },
-    )
+    try:
+        response = _get_vllm_client().chat.completions.create(
+            model=os.getenv("VLLM_ADAPTER_NAME", "qwen3.5-2b-adapter"),
+            messages=[_get_query_prompt(), message],
+            max_tokens=int(os.getenv("VLLM_CLIENT_TOKEN", "2048")),
+            temperature=float(os.getenv("VLLM_CLIENT_TEMPERATURE", "1.5")),
+            extra_body={
+                "min_p": float(os.getenv("VLLM_CLIENT_MIN_P", "0.1")),
+            },
+        )
+    except Exception:  # noqa: BLE001
+        log.exception("Explain request failed during vLLM completion")
+        return JSONResponse({"error": "Unable to generate explanation"}, status_code=500)
 
     markdown = ""
     if response.choices:
