@@ -471,7 +471,7 @@
     </div>
   </nav>
   <!-- vLLM startup overlay -->
-  <div id="vllmOverlay" role="status" aria-live="polite" aria-atomic="true">
+  <div id="vllmOverlay" role="dialog" aria-modal="true" aria-labelledby="vllmLabel" aria-describedby="vllmSublabel">
     <div class="vllm-spinner" aria-hidden="true"></div>
     <div class="vllm-label" id="vllmLabel">Starting vLLM server&hellip;</div>
     <div class="vllm-sublabel" id="vllmSublabel">This may take a few minutes. Checking again in 30s.</div>
@@ -562,6 +562,7 @@
       explainLoading: false,
       autoRefreshIntervalMs: DEFAULT_AUTO_REFRESH_INTERVAL_MS,
       autoRefreshTimerId: null,
+      explainRenderTimeoutIds: [],
     };
 
     function updateRefreshControlsState() {
@@ -604,6 +605,11 @@
       explainBtn.disabled = !enabled;
       explainBtn.classList.toggle("enabled", enabled);
       updateRefreshControlsState();
+    }
+
+    function clearExplainRenderTimers() {
+      state.explainRenderTimeoutIds.forEach((timeoutId) => clearTimeout(timeoutId));
+      state.explainRenderTimeoutIds = [];
     }
 
     function getSelectedTimes() {
@@ -746,6 +752,7 @@
       }
 
       state.explainLoading = true;
+      clearExplainRenderTimers();
       updateExplainButtonState();
       explainOutput.hidden = false;
       explainHeader.textContent = "AI Assistant Output";
@@ -814,7 +821,7 @@
           const lineDelay = 50; // milliseconds per line
 
           lines.forEach((line, index) => {
-            setTimeout(() => {
+            const timeoutId = setTimeout(() => {
               const lineDiv = document.createElement('div');
               lineDiv.style.opacity = '0';
               lineDiv.style.transition = 'opacity 0.3s ease-in';
@@ -830,6 +837,7 @@
                 lineDiv.style.opacity = '1';
               });
             }, delay);
+            state.explainRenderTimeoutIds.push(timeoutId);
             delay += lineDelay;
           });
         } else {
@@ -864,6 +872,8 @@
     ];
     let vllmPhase = 0;
     let vllmHelpTimerId = null;
+    let vllmReadinessTimeoutId = null;
+    let vllmPollingEnabled = true;
 
     function revealVllmFallback() {
       vllmSublabel.textContent = "vLLM is still starting. You can retry now or continue browsing the workbench without AI explanations.";
@@ -871,6 +881,10 @@
     }
 
     function continueWithoutVllm() {
+      vllmPollingEnabled = false;
+      if (vllmReadinessTimeoutId) {
+        clearTimeout(vllmReadinessTimeoutId);
+      }
       vllmOverlay.classList.add("hidden");
       loadPage();
       updateExplainButtonState();
@@ -883,6 +897,10 @@
     continueWorkbenchBtn.addEventListener("click", continueWithoutVllm);
 
     async function checkVllmReady() {
+      if (!vllmPollingEnabled) {
+        return false;
+      }
+
       try {
         const res = await fetch(buildApiUrl("/api/vllm/health"));
         const data = await res.json();
@@ -904,11 +922,12 @@
     async function vllmReadinessLoop() {
       const ready = await checkVllmReady();
       if (ready) return;
+      if (!vllmPollingEnabled) return;
 
       vllmPhase = (vllmPhase + 1) % PHASE_LABELS.length;
       vllmLabel.textContent = PHASE_LABELS[vllmPhase];
 
-      setTimeout(vllmReadinessLoop, VLLM_POLL_MS);
+      vllmReadinessTimeoutId = setTimeout(vllmReadinessLoop, VLLM_POLL_MS);
     }
 
     vllmHelpTimerId = setTimeout(revealVllmFallback, VLLM_HELP_AFTER_MS);

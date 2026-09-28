@@ -15,6 +15,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from influxdb import InfluxDBClient
 from openai import OpenAI
+from pydantic import BaseModel, Field
 
 log = logging.getLogger(__name__)
 
@@ -22,6 +23,10 @@ _src_dir = os.path.dirname(__file__)
 _templates = Jinja2Templates(directory=os.path.join(_src_dir, "templates"))
 
 router = APIRouter(prefix="/insights")
+
+
+class ExplainRequest(BaseModel):
+    selected_times: list[str] = Field(default_factory=list)
 
 
 def _workbench_path(request: Request) -> str:
@@ -208,19 +213,18 @@ def workbench_vllm_health():
 
 
 @router.post("/api/explain")
-async def workbench_explain(request: Request):
-    payload = await request.json()
-    selected_times = payload.get("selected_times", [])
+async def workbench_explain(payload: ExplainRequest):
+    selected_times = payload.selected_times
     log.info("Explain request received with %d selected time(s)", len(selected_times))
     ts_data: list[str] = []
     resolved_images: list[dict[str, Any]] = []
     message: dict[str, Any] = {"role": "user", "content": []}
     client = _get_influx_client()
+    measurement = _get_fusion_measurement_name()
 
     for time_str in selected_times:
         try:
             normalized_time = _normalize_iso_timestamp(time_str)
-            measurement = _get_fusion_measurement_name()
             query = f"SELECT * FROM {measurement} WHERE time = '{normalized_time}'"  # nosec B608
             result = client.query(query)
             points = list(result.get_points())
