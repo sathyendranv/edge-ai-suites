@@ -914,6 +914,7 @@
         const res = await fetch(buildApiUrl("/api/vllm/health"));
         const data = await res.json();
         if (data.accessible === true) {
+          vllmPollingEnabled = false;
           if (vllmHelpTimerId) {
             clearTimeout(vllmHelpTimerId);
           }

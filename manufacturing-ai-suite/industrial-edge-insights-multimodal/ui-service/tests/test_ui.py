@@ -245,3 +245,11 @@ def test_insights_explain_handles_influx_client_error(client, monkeypatch):
     r = client.post("/insights/api/explain", json={"selected_times": ["2026-01-01T00:00:00Z"]})
     assert_condition(r.status_code == 500)
     assert_condition(r.json()["error"] == "Unable to process explain request")
+
+
+def test_insights_explain_rejects_too_many_timestamps(client):
+    selected_times = [f"2026-01-01T00:00:0{i}Z" for i in range(6)]
+
+    r = client.post("/insights/api/explain", json={"selected_times": selected_times})
+    assert_condition(r.status_code == 400)
+    assert_condition("Select at most 5 timestamps" in r.json()["error"])
