@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Intel Corporation
+# SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
 import base64
@@ -202,7 +202,8 @@ async def workbench_explain(request: Request):
     for time_str in selected_times:
         try:
             datetime.datetime.fromisoformat(time_str.replace("Z", "+00:00"))
-            query = f"SELECT * FROM fusion_result WHERE time = '{time_str}'"  # nosec B608
+            measurement = _get_fusion_measurement_name()
+            query = f"SELECT * FROM {measurement} WHERE time = '{time_str}'"  # nosec B608
             result = client.query(query)
             points = list(result.get_points())
             if not points:
@@ -266,12 +267,13 @@ async def workbench_explain(request: Request):
                     • Wire Consumed: {sensor_row.get('Wire Consumed', 'N/A')} mm
                 """
 
-            message["content"].append(
-                {
-                    "type": "image_url",
-                    "image_url": {"url": image_data_url},
-                }
-            )
+            if image_data_url:
+                message["content"].append(
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": image_data_url},
+                    }
+                )
             message["content"].append(
                 {
                     "type": "text",

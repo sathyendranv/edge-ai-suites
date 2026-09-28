@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: (C) 2026 Intel Corporation -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
 <!doctype html>
 <html lang="en">
 {% set root = request.scope.get("root_path", "") %}
@@ -460,7 +462,7 @@
     </div>
   </nav>
   <!-- vLLM startup overlay -->
-  <div id="vllmOverlay">
+  <div id="vllmOverlay" role="status" aria-live="polite" aria-atomic="true">
     <div class="vllm-spinner" aria-hidden="true"></div>
     <div class="vllm-label" id="vllmLabel">Starting vLLM server&hellip;</div>
     <div class="vllm-sublabel" id="vllmSublabel">This may take a few minutes. Checking again in 30s.</div>
