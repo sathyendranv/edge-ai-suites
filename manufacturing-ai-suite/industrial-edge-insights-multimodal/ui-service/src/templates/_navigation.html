@@ -1,0 +1,9 @@
+<nav>
+  <div class="nav-wrapper">
+    {% if show_agentic_tabs is not defined or show_agentic_tabs %}
+    <a href="{{ dashboard_href }}" class="{{ 'active' if active_tab == 'dashboard' else '' }}">Dashboard</a>
+    <a href="{{ detections_href }}" class="{{ 'active' if active_tab == 'detections' else '' }}">Detections</a>
+    {% endif %}
+    <a href="{{ insights_href }}" class="{{ 'active' if active_tab == 'insights' else '' }}">Insights Workbench</a>
+  </div>
+</nav>

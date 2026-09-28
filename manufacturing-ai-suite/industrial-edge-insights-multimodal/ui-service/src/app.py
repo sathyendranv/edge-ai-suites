@@ -224,10 +224,15 @@ def _insights_href(request: Request) -> str:
     return _redirect_path(request, "workbench_page")
 
 
+def _detections_href(request: Request) -> str:
+    return _redirect_path(request, "detections_page")
+
+
 def _common_context(request: Request, active_tab: str) -> dict[str, str]:
     return {
         "active_tab": active_tab,
         "dashboard_href": _dashboard_href(request),
+        "detections_href": _detections_href(request),
         "insights_href": _insights_href(request),
     }
 
@@ -353,7 +358,7 @@ async def api_status():
     }
 
 
-@app.get("/detections", response_class=HTMLResponse)
+@app.get("/detections", response_class=HTMLResponse, name="detections_page")
 async def detections_page(
     request: Request,
     label: Optional[str] = None,

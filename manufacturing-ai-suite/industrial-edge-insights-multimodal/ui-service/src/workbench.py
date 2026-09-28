@@ -43,6 +43,11 @@ def _dashboard_path(request: Request) -> str:
     return f"{root_path}{request.app.url_path_for(route_name)}"
 
 
+def _detections_path(request: Request) -> str:
+    root_path = request.scope.get("root_path", "")
+    return f"{root_path}{request.app.url_path_for('detections_page')}"
+
+
 def _show_agentic_tabs() -> bool:
     return os.getenv("UI_ENABLE_AGENTIC_TABS", "true").lower() == "true"
 
@@ -170,6 +175,7 @@ def workbench_page(request: Request):
         context={
             "workbench_root": _workbench_path(request),
             "dashboard_href": _dashboard_path(request),
+            "detections_href": _detections_path(request),
             "insights_href": _workbench_path(request),
             "show_agentic_tabs": _show_agentic_tabs(),
         },

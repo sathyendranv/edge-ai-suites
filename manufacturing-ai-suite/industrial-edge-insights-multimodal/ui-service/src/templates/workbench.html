@@ -461,15 +461,8 @@
     </div>
   </header>
 
-  <nav>
-    <div class="nav-wrapper">
-      {% if show_agentic_tabs %}
-      <a href="{{ dashboard_href }}">Dashboard</a>
-      <a href="{{ root }}/detections">Detections</a>
-      {% endif %}
-      <a href="{{ insights_href }}" class="active">Insights Workbench</a>
-    </div>
-  </nav>
+  {% set active_tab = "insights" %}
+  {% include "_navigation.html" %}
   <!-- vLLM startup overlay -->
   <div id="vllmOverlay" role="dialog" aria-modal="true" aria-labelledby="vllmLabel" aria-describedby="vllmSublabel">
     <div class="vllm-spinner" aria-hidden="true"></div>
