@@ -247,6 +247,73 @@ def test_insights_explain_handles_influx_client_error(client, monkeypatch):
     assert_condition(r.json()["error"] == "Unable to process explain request")
 
 
+def test_insights_explain_success_response_shape(client, monkeypatch):
+    class FakeQueryResult:
+        def __init__(self, points):
+            self._points = points
+
+        def get_points(self):
+            return iter(self._points)
+
+    class FakeInfluxClient:
+        def query(self, query):
+            if "vision-weld-classification-results" in query:
+                return FakeQueryResult([{"frame_id": 7, "img_handle": "frame-7"}])
+            if "weld-sensor-anomaly-data" in query:
+                return FakeQueryResult(
+                    [
+                        {
+                            "Primary Weld Current": 10,
+                            "Secondary Weld Voltage": 20,
+                            "Pressure": 30,
+                            "CO2 Weld Flow": 40,
+                            "Feed": 50,
+                            "Wire Consumed": 60,
+                        }
+                    ]
+                )
+            return FakeQueryResult(
+                [
+                    {
+                        "vision_timestamp": "2026-01-01T00:00:00Z",
+                        "timeseries_timestamp": "1704067200000000000",
+                    }
+                ]
+            )
+
+    class FakeChoice:
+        class Message:
+            content = "Structured response"
+
+        message = Message()
+
+    class FakeResponse:
+        choices = [FakeChoice()]
+
+    class FakeCompletions:
+        @staticmethod
+        def create(**kwargs):
+            return FakeResponse()
+
+    class FakeChat:
+        completions = FakeCompletions()
+
+    class FakeClient:
+        chat = FakeChat()
+
+    monkeypatch.setattr(workbench, "_get_influx_client", lambda: FakeInfluxClient())
+    monkeypatch.setattr(workbench, "_get_vllm_client", lambda: FakeClient())
+    monkeypatch.setattr(workbench, "_build_image_data_url", lambda url: "data:image/jpeg;base64,AAA")
+
+    r = client.post("/insights/api/explain", json={"selected_times": ["2026-01-01T00:00:00Z"]})
+    assert_condition(r.status_code == 200)
+    payload = r.json()
+    assert_condition(payload["markdown"] == "Structured response")
+    assert_condition(len(payload["resolved_images"]) == 1)
+    assert_condition(len(payload["ts_data"]) == 1)
+    assert_condition(payload["resolved_images"][0]["img_handle"] == "frame-7")
+
+
 def test_insights_explain_rejects_too_many_timestamps(client):
     selected_times = [f"2026-01-01T00:00:0{i}Z" for i in range(6)]
 

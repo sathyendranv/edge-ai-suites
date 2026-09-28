@@ -273,19 +273,17 @@ async def workbench_explain(payload: ExplainRequest):
                 img_handle = points_vision[0].get("img_handle")
                 image_url = _build_image_url(str(img_handle)) if img_handle else None
                 image_data_url = _build_image_data_url(image_url) if image_url else None
-            resolved_images.append(
-                {
-                    "selected_time": time_str,
-                    "frame_id": frame_id,
-                    "img_handle": img_handle,
-                    "image_url": image_url,
-                    "image_load_url": (
-                        f"/image-store/buckets/{os.getenv('BUCKET_NAME', 'dlstreamer-pipeline-results/weld-defect-classification')}/{img_handle}.jpg"
-                        if img_handle
-                        else None
-                    ),
-                }
-            )
+            image_entry = {
+                "selected_time": time_str,
+                "frame_id": frame_id,
+                "img_handle": img_handle,
+                "image_url": image_url,
+                "image_load_url": (
+                    f"/image-store/buckets/{os.getenv('BUCKET_NAME', 'dlstreamer-pipeline-results/weld-defect-classification')}/{img_handle}.jpg"
+                    if img_handle
+                    else None
+                ),
+            }
 
             normalized_sensor_timestamp = _normalize_numeric_timestamp(row.get("timeseries_timestamp"))
             query_sensor = (
@@ -309,6 +307,7 @@ async def workbench_explain(payload: ExplainRequest):
                     • Wire Consumed: {sensor_row.get('Wire Consumed', 'N/A')} mm
                 """
 
+            resolved_images.append(image_entry)
             if image_data_url:
                 message["content"].append(
                     {
