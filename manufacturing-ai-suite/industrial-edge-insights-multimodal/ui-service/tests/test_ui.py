@@ -98,6 +98,12 @@ def test_insights_page(client):
     assert_condition("const APP_BASE_PATH = \"/insights\"" in r.text)
 
 
+def test_insights_measurements_api(client):
+    r = client.get("/insights/api/measurements")
+    assert_condition(r.status_code == 200)
+    assert_condition(r.json()["measurements"] == ["fusion_result"])
+
+
 def test_dashboard_nav_includes_insights(client):
     with respx.mock:
         respx.get("http://mock-storage/detections/summary").mock(return_value=httpx.Response(200, json={}))

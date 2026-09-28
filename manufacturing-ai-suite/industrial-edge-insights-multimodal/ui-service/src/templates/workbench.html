@@ -833,7 +833,9 @@
             delay += lineDelay;
           });
         } else {
-          explainBody.innerHTML = "<p>No explanation available.</p>";
+          const emptyMarkdownMessage = document.createElement('p');
+          emptyMarkdownMessage.textContent = "No explanation available.";
+          explainBody.appendChild(emptyMarkdownMessage);
         }
         setStatus(`Explanation generated for ${selectedTimes.length} selected time value(s).`);
       } catch (error) {

@@ -25,7 +25,8 @@ router = APIRouter(prefix="/insights")
 
 
 def _workbench_path(request: Request) -> str:
-    return f"{request.scope.get('root_path', '')}/insights"
+    root_path = request.scope.get("root_path", "")
+    return f"{root_path}{request.app.url_path_for('workbench_page')}"
 
 
 def _dashboard_path(request: Request) -> str:
@@ -309,6 +310,9 @@ async def workbench_explain(request: Request):
         except Exception:  # noqa: BLE001
             log.exception("Explain processing failed for time=%s", time_str)
             return JSONResponse({"error": "Unable to process explain request"}, status_code=500)
+
+    if not message["content"]:
+        return JSONResponse({"error": "No valid data found for the selected timestamp(s)"}, status_code=400)
 
     try:
         response = _get_vllm_client().chat.completions.create(
