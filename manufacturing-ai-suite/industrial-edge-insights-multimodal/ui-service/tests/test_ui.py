@@ -234,3 +234,14 @@ def test_insights_explain_handles_vllm_error(client, monkeypatch):
     r = client.post("/insights/api/explain", json={"selected_times": ["2026-01-01T00:00:00Z"]})
     assert_condition(r.status_code == 500)
     assert_condition(r.json()["error"] == "Unable to generate explanation")
+
+
+def test_insights_explain_handles_influx_client_error(client, monkeypatch):
+    def raise_influx_error():
+        raise RuntimeError("influx unavailable")
+
+    monkeypatch.setattr(workbench, "_get_influx_client", raise_influx_error)
+
+    r = client.post("/insights/api/explain", json={"selected_times": ["2026-01-01T00:00:00Z"]})
+    assert_condition(r.status_code == 500)
+    assert_condition(r.json()["error"] == "Unable to process explain request")

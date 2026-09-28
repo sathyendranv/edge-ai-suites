@@ -669,11 +669,11 @@
         rowCheckbox.addEventListener("change", (event) => {
           if (event.target.checked) {
             const rowCheckboxes = tableBody.querySelectorAll("input[type='checkbox'][data-row-select='true']");
-            rowCheckboxes.forEach((checkbox) => {
-              if (checkbox !== event.target) {
-                checkbox.checked = false;
-              }
-            });
+            const checkedCount = Array.from(rowCheckboxes).filter((checkbox) => checkbox.checked).length;
+            if (checkedCount > 5) {
+              event.target.checked = false;
+              setStatus("Select up to 5 timestamps for explanation.");
+            }
           }
           updateExplainButtonState();
         });

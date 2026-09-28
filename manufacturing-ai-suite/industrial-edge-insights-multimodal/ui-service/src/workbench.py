@@ -232,8 +232,13 @@ async def workbench_explain(payload: ExplainRequest):
     ts_data: list[str] = []
     resolved_images: list[dict[str, Any]] = []
     message: dict[str, Any] = {"role": "user", "content": []}
-    client = _get_influx_client()
     measurement = _get_fusion_measurement_name()
+
+    try:
+        client = _get_influx_client()
+    except Exception:  # noqa: BLE001
+        log.exception("Explain request failed during InfluxDB client creation")
+        return JSONResponse({"error": "Unable to process explain request"}, status_code=500)
 
     for time_str in selected_times:
         try:
