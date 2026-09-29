@@ -97,6 +97,10 @@ This section shows how to download the `Unsloth Qwen3.5-2B` model and `Unsloth Q
    docker ps --filter "name=vllm-server"
    ```
 
+   The Insights Workbench is provided by the `multimodal-agentic-ui` container
+   (no separate `ia-insights-workbench` container). Its URL remains
+   `https://localhost:3000/insights-ui/`.
+
 3. Inspect vLLM logs:
 
    ```bash

@@ -59,6 +59,11 @@ make build
 make up_agentic
 ```
 
+The `multimodal-agentic-ui` container serves both the agentic dashboard at
+`/agentic-ui/` and the Insights Workbench at `/insights-ui/`. Use the navigation
+tabs to move between them. Running `make up_agentic` again updates the stack
+without deleting its volumes; the retired workbench container is removed.
+
 ### Running the Agentic Workflow on GPU
 
 By default, the agentic workflow is configured to run on `CPU`.

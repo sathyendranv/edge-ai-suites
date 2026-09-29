@@ -34,6 +34,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import PlainTextResponse
 
+from .insights import router as insights_router
+
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
@@ -62,8 +64,33 @@ app = FastAPI(
     root_path=REST_API_ROOT_PATH
 )
 
+
+class InsightsRootPathMiddleware:
+    """Keep the independent /insights-ui mount outside the /agentic-ui root path."""
+
+    def __init__(self, application):
+        self.application = application
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http" and scope["path"].startswith("/insights-ui/"):
+            # Starlette's StaticFiles uses root_path to find the remainder of
+            # a mounted path. The agentic root_path does not prefix this URL.
+            scope = {**scope, "root_path": ""}
+        await self.application(scope, receive, send)
+
+
+app.add_middleware(InsightsRootPathMiddleware)
+
 _src_dir = os.path.dirname(__file__)
 app.mount("/static", StaticFiles(directory=os.path.join(_src_dir, "static")), name="static")
+# The workbench also runs when only the vLLM stack is deployed. Serve its
+# assets from its own public path rather than the agentic-only /agentic-ui path.
+app.mount(
+    "/insights-ui/static",
+    StaticFiles(directory=os.path.join(_src_dir, "static")),
+    name="insights-static",
+)
+app.include_router(insights_router)
 templates = Jinja2Templates(directory=os.path.join(_src_dir, "templates"))
 
 _mqtt_client: Optional[mqtt.Client] = None

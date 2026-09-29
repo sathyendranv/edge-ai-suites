@@ -335,8 +335,8 @@ up_agentic: check_hardware check_models check_env_variables validate_host_ip dow
 	rm -f configs/grafana/provisioning/*.json; \
 	cp configs/grafana/dashboards_jsons/weld_defect_detection_vlm.json configs/grafana/provisioning/weld_defect_detection.json || exit 1; \
 	cp configs/grafana/dashboards_jsons/weld_defect_detection_agentic.json configs/grafana/provisioning/weld_defect_detection_agentic.json || exit 1; \
-	$(MAKE) download_model; \
-	$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) -f $(DOCKER_COMPOSE_FILE_AGENTIC) -f $(DOCKER_COMPOSE_FILE_VLLM) up -d; \
+	$(MAKE) download_model || exit 1; \
+	$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) -f $(DOCKER_COMPOSE_FILE_VLLM) -f $(DOCKER_COMPOSE_FILE_AGENTIC) up -d || exit 1; \
 	$(MAKE) upload_tar_file
 
 
@@ -436,6 +436,7 @@ push_helm_charts: gen_helm_charts
 help:
 	@echo "Makefile commands:"
 	@echo "  make build                        - Build Docker containers"
+	@echo "  make up_agentic                   - Start the agentic stack"
 	@echo "  make build_copyleft_sources       - Build Docker containers including copyleft licensed sources"
 	@echo "  make up                           - Start Docker containers"
 	@echo "  make down                         - Stop Docker containers"
