@@ -40,7 +40,6 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 _AGENT_URL     = os.environ.get("AGENT_SERVICE_URL",     "http://apm-agent:5002")
-_DETECTION_URL = os.environ.get("DETECTION_SERVICE_URL", "http://apm-detection:5004")
 _STORAGE_URL   = os.environ.get("STORAGE_SERVICE_URL",   "http://ia-fusion-analytics:8080")
 _USE_CASE_ID   = os.environ.get("USE_CASE_ID",           "unknown")
 _TIMEOUT       = 15.0
@@ -278,14 +277,6 @@ async def _fetch_summary_and_runs(client: httpx.AsyncClient):
     return summary, runs
 
 
-async def _fetch_videos(client: httpx.AsyncClient):
-    try:
-        r = await client.get(f"{_DETECTION_URL}/detection/videos")
-        return r.json().get("videos", []) if r.status_code == 200 else []
-    except Exception:
-        return []
-
-
 async def _fetch_run_view(client: httpx.AsyncClient, run_id: str) -> dict:
     """Return the merged ``{"phase", "result"}`` view of one run for the results page."""
     try:
@@ -308,7 +299,6 @@ async def _fetch_run_view(client: httpx.AsyncClient, run_id: str) -> dict:
 async def index(request: Request):
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
         summary, runs = await _fetch_summary_and_runs(client)
-        videos = await _fetch_videos(client)
 
     active_run = next((r for r in reversed(runs) if r.get("status") == "running"), None)
 
@@ -319,8 +309,6 @@ async def index(request: Request):
             "summary": summary,
             "runs": runs,
             "active_run": active_run,
-            "videos": videos,
-            "devices": ["CPU", "GPU", "NPU"],
         },
     )
 

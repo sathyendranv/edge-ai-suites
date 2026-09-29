@@ -62,7 +62,6 @@ def test_workbench_page_and_assets(client):
 def test_dashboard_links_to_insights(client):
     respx.get("http://mock-storage/detections/summary").mock(return_value=httpx.Response(200, json={}))
     respx.get("http://mock-agent/agents/runs").mock(return_value=httpx.Response(200, json=[]))
-    respx.get("http://mock-detection/detection/videos").mock(return_value=httpx.Response(200, json={"videos": []}))
 
     response = client.get("/agentic-ui/")
     assert response.status_code == 200

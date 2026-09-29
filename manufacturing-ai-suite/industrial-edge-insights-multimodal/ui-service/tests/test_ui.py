@@ -8,7 +8,6 @@ import pytest
 
 os.environ["MQTT_DISABLED"] = "true"
 os.environ["AGENT_SERVICE_URL"]     = "http://mock-agent"
-os.environ["DETECTION_SERVICE_URL"] = "http://mock-detection"
 os.environ["STORAGE_SERVICE_URL"]   = "http://mock-storage"
 os.environ["USE_CASE_ID"]           = "test-case"
 
@@ -34,10 +33,13 @@ def test_index_no_data(client):
     respx.get("http://mock-storage/detections/summary").mock(return_value=httpx.Response(200, json={}))
     respx.get("http://mock-detection/detection/runs").mock(return_value=httpx.Response(200, json=[]))
     respx.get("http://mock-agent/agents/runs").mock(return_value=httpx.Response(200, json=[]))
-    respx.get("http://mock-detection/detection/videos").mock(return_value=httpx.Response(200, json={"videos": []}))
+    unused_videos = respx.get("http://mock-detection/detection/videos").mock(
+        return_value=httpx.Response(200, json={"videos": []})
+    )
     r = client.get("/")
     assert_condition(r.status_code == 200)
     assert_condition("Multimodal Weld Defect Detection" in r.text)
+    assert_condition(not unused_videos.called, "Dashboard must not wait for unused detection videos")
 
 
 @respx.mock
@@ -50,7 +52,6 @@ def test_index_with_summary(client):
     respx.get("http://mock-storage/detections/summary").mock(return_value=httpx.Response(200, json=summary))
     respx.get("http://mock-detection/detection/runs").mock(return_value=httpx.Response(200, json=[]))
     respx.get("http://mock-agent/agents/runs").mock(return_value=httpx.Response(200, json=[]))
-    respx.get("http://mock-detection/detection/videos").mock(return_value=httpx.Response(200, json={"videos": []}))
     r = client.get("/")
     assert_condition(r.status_code == 200)
     assert_condition("Rupture" in r.text)
@@ -59,7 +60,6 @@ def test_index_with_summary(client):
 @respx.mock
 def test_index_merges_detection_and_agent_runs(client):
     respx.get("http://mock-storage/detections/summary").mock(return_value=httpx.Response(200, json={}))
-    respx.get("http://mock-detection/detection/videos").mock(return_value=httpx.Response(200, json={"videos": []}))
     respx.get("http://mock-detection/detection/runs").mock(return_value=httpx.Response(200, json=[
         {"run_id": "r1", "status": "completed", "phase": "completed", "result": {}},
         {"run_id": "r2", "status": "running", "phase": "detecting", "result": None},
