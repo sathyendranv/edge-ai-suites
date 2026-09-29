@@ -1,7 +1,7 @@
 # Copyright (C) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-"""The integrated insights workbench uses the same UI process and proxy."""
+"""The integrated VLM Reasoning uses the same UI process and proxy."""
 
 from types import SimpleNamespace
 
