@@ -88,8 +88,8 @@ services:
     hostname: multimodal-agentic-ui
     image: ${DOCKER_REGISTRY}${MULTIMODAL_AGENTIC_UI_IMAGE}:${IMAGE_SUFFIX:-latest}${WEEKLY_BUILD_DATE:+-${WEEKLY_BUILD_DATE}}${WEEKLY_BUILD_DATE:+-weekly}
     build:
-      context: ui-service
-      dockerfile: Dockerfile
+      context: $PWD/ui-service
+      dockerfile: $PWD/ui-service/Dockerfile
     restart: unless-stopped
     depends_on:
       - ia-influxdb

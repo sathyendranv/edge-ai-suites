@@ -1,4 +1,5 @@
-/* Copyright (C) 2026 Intel Corporation — SPDX-License-Identifier: Apache-2.0 */
+/* SPDX-FileCopyrightText: (C) 2026 Intel Corporation */
+/* SPDX-License-Identifier: Apache-2.0 */
 
 (() => {
   const $ = (id) => document.getElementById(id);

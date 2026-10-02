@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Intel Corporation
+# SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
 """Fusion analytics and weld explanation routes served by the unified UI."""

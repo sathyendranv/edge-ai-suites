@@ -3,7 +3,7 @@
 
 FROM python:3.14-slim
 
-LABEL org.opencontainers.image.title="Multimodal Weld Quality UI"
+LABEL org.opencontainers.image.title="Multimodal Weld Defect Detection UI"
 LABEL org.opencontainers.image.description="Fusion insights workbench and agentic weld quality analysis UI"
 LABEL org.opencontainers.image.vendor="Intel Corporation"
 
