@@ -103,8 +103,6 @@ This section shows how to download the `Unsloth Qwen3.5-2B` model and `Unsloth Q
    docker logs -f vllm-server
    ```
 
-   The insights UI can also be independently accessed at URL: `https://localhost:3000/insights-ui/`
-
 4. Check the output in Grafana dashboard:
    - Use the link `https://localhost:3000` to open the Grafana dashboard in a browser, preferably
      the Chrome browser. For Helm deployment, use the link `https://localhost:30001`.
@@ -122,6 +120,8 @@ This section shows how to download the `Unsloth Qwen3.5-2B` model and `Unsloth Q
    - The following appears:
 
      ![vLLM Reasoning for weld data](../_assets/vllm_response.png)
+
+   The insights UI can also be independently accessed at URL: `https://localhost:3000/insights-ui/`
 
 ## Stop the Deployment
 

@@ -10,7 +10,7 @@ import logging
 import mimetypes
 import os
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 from urllib.request import urlopen
 
 from fastapi import APIRouter, Request
@@ -18,10 +18,37 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from influxdb import InfluxDBClient
 from openai import OpenAI
+from pydantic import BaseModel, Field, StringConstraints, field_validator
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/insights-ui")
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
+
+FusionTimestamp = Annotated[
+    str,
+    StringConstraints(
+        min_length=20,
+        max_length=35,
+        pattern=r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$",
+    ),
+]
+
+
+class ExplainRequest(BaseModel):
+    """A single ISO-8601 fusion result selection from the workbench."""
+
+    selected_times: list[FusionTimestamp] = Field(min_length=1, max_length=1)
+
+    @field_validator("selected_times")
+    @classmethod
+    def validate_selected_times(cls, selected_times: list[str]) -> list[str]:
+        for time_str in selected_times:
+            try:
+                datetime.datetime.fromisoformat(time_str.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("selected_times must contain valid ISO-8601 timestamps") from exc
+        return selected_times
+
 
 vllm_client = OpenAI(
     base_url=f"http://{os.getenv('VLLM_HOST', 'vllm-server')}:{os.getenv('VLLM_PORT', '8000')}/v1",
@@ -161,11 +188,9 @@ def api_vllm_health() -> JSONResponse:
 
 
 @router.post("/api/explain")
-def api_explain(payload: dict[str, Any]) -> Any:
+def api_explain(payload: ExplainRequest) -> Any:
     """Combine selected vision/sensor data with the vLLM weld-quality prompt."""
-    selected_times = payload.get("selected_times", [])
-    if not isinstance(selected_times, list):
-        return JSONResponse({"error": "selected_times must be a list"}, status_code=400)
+    selected_times = payload.selected_times
 
     ts_data: list[str] = []
     resolved_images: list[dict[str, Any]] = []
@@ -175,11 +200,6 @@ def api_explain(payload: dict[str, Any]) -> Any:
         client = get_influx_client()
         try:
             for time_str in selected_times:
-                try:
-                    datetime.datetime.fromisoformat(time_str.replace("Z", "+00:00"))
-                except (ValueError, AttributeError):
-                    return JSONResponse({"error": f"Invalid time format: {time_str}"}, status_code=400)
-
                 # The timestamp is ISO-8601 validated before interpolation.
                 query = f"SELECT * FROM {get_fusion_measurement_name()} WHERE time = '{time_str}'"  # nosec B608
                 points = list(client.query(query).get_points())
@@ -216,11 +236,18 @@ def api_explain(payload: dict[str, Any]) -> Any:
                         }
                     )
 
+                if image_data_url is None:
+                    log.warning("Weld image unavailable for time=%s", time_str)
+                    return JSONResponse({"error": "Weld image unavailable for selected time"}, status_code=502)
+
                 sensor_query = (
                     'SELECT * FROM "weld-sensor-anomaly-data" '
                     f"WHERE time = {row['timeseries_timestamp']}"
                 )  # nosec B608
                 sensor_points = list(client.query(sensor_query).get_points())
+                if not sensor_points:
+                    log.warning("No sensor data for time=%s", time_str)
+                    return JSONResponse({"error": "No sensor data found for selected time"}, status_code=404)
                 sensor = sensor_points[0]
 
                 sensor_text = f"""
@@ -249,7 +276,8 @@ def api_explain(payload: dict[str, Any]) -> Any:
     except Exception:  # noqa: BLE001
         log.exception("Unable to process explain request")
         return JSONResponse({"error": "Unable to process explain request"}, status_code=500)
-
+    if not message["content"]:
+         return JSONResponse({"error": "No explainable data found"}, status_code=404)
     try:
         response = vllm_client.chat.completions.create(
             model=os.getenv("VLLM_ADAPTER_NAME", "qwen3.5-2b-adapter"),
