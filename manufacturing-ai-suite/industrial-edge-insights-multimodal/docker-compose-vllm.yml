@@ -110,12 +110,12 @@ services:
       MQTT_BATCH_TOPIC: ${MQTT_BATCH_TOPIC:-apm/batch-complete}
       MQTT_QOS: ${MQTT_QOS:-1}
       MQTT_KEEPALIVE: ${MQTT_KEEPALIVE:-60}
-      MQTT_DISABLED: "true"
+      MQTT_DISABLED: ${MQTT_DISABLED:-true}
       HOST: 0.0.0.0
       PORT: 5003
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       REST_API_ROOT_PATH: /agentic-ui
-      AGENTIC_UI_ENABLED: "false"
+      AGENTIC_UI_ENABLED: ${AGENTIC_UI_ENABLED:-false}
       INFLUX_HOST: ia-influxdb
       INFLUX_PORT: 8086
       INFLUX_USER: ${INFLUXDB_USERNAME}

@@ -261,6 +261,7 @@ check_hardware:
 up_vllm: check_hardware check_models check_env_variables validate_host_ip down
 	@export TELEGRAF_INPUT_PLUGIN=mqtt_consumer; \
 	export NGINX_CONFIG_PATH=./configs/nginx/nginx_vllm.conf; \
+	export AGENTIC_UI_ENABLED=false MQTT_DISABLED=true; \
 	echo "Starting Docker containers..."; \
 	echo "GPU device path set to: $(DRI_MOUNT_PATH) based on its existence"; \
 	rm -f configs/grafana/provisioning/*.json; \
@@ -330,6 +331,7 @@ download_model:
 up_agentic: check_hardware check_models check_env_variables validate_host_ip down
 	@export TELEGRAF_INPUT_PLUGIN=mqtt_consumer; \
 	export NGINX_CONFIG_PATH=./configs/nginx/nginx_agentic.conf; \
+	export AGENTIC_UI_ENABLED=true MQTT_DISABLED=false; \
 	echo "Starting Docker containers..."; \
 	echo "GPU device path set to: $(DRI_MOUNT_PATH) based on its existence"; \
 	rm -f configs/grafana/provisioning/*.json; \

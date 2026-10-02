@@ -200,12 +200,6 @@ services:
       - '--storage.tsdb.path=/prometheus'
       - '--web.enable-lifecycle'
 
-  multimodal-agentic-ui:
-    # All other UI configuration is shared with the vLLM-only deployment.
-    environment:
-      AGENTIC_UI_ENABLED: "true"
-      MQTT_DISABLED: "false"
-
 volumes:
   apm_agent_output:
     driver: local
