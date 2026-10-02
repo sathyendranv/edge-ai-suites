@@ -436,7 +436,8 @@ push_helm_charts: gen_helm_charts
 help:
 	@echo "Makefile commands:"
 	@echo "  make build                        - Build Docker containers"
-	@echo "  make up_agentic                   - Start the agentic stack"
+	@echo "  make up_agentic                   - Start the application and the agentic stack including vLLM service"
+	@echo "  make up_vllm                      - Start the application and the vLLM stack"
 	@echo "  make build_copyleft_sources       - Build Docker containers including copyleft licensed sources"
 	@echo "  make up                           - Start Docker containers"
 	@echo "  make down                         - Stop Docker containers"
