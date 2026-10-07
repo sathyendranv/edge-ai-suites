@@ -138,7 +138,27 @@ services:
       timeout: 10s
       retries: 5
       start_period: 20s
-
+  weld-mcp-server:
+    build:
+      context: $PWD/mcp-server
+      dockerfile: $PWD/mcp-server/Dockerfile
+    image: ${DOCKER_REGISTRY}${MULTIMODAL_MCP_SERVER_IMAGE}:${IMAGE_SUFFIX:-latest}${WEEKLY_BUILD_DATE:+-${WEEKLY_BUILD_DATE}}${WEEKLY_BUILD_DATE:+-weekly}
+    read_only: true
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges
+    depends_on:
+      dlstreamer-pipeline-server:
+        condition: service_started
+    environment:
+      PIPELINE_API_URL: http://dlstreamer-pipeline-server:8080
+      EXPLAIN_API_URL: http://multimodal-agentic-ui:5003
+    ports:
+      - "127.0.0.1:${MCP_PORT:-8001}:8000"
+    volumes:
+      - ./configs/dlstreamer-pipeline-server/pipeline-request-cpu.json:/app/configs/dlstreamer-pipeline-server/pipeline-request-cpu.json:ro
+    networks:
+      - timeseries_network
 volumes:
   vol_ui_service_tmpfs:
     driver: local
