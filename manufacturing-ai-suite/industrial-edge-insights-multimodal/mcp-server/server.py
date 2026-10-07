@@ -3,8 +3,10 @@
 import json
 import os
 import re
+import uuid
 from pathlib import Path
 from typing import Any, Awaitable, Callable, Literal
+from urllib.parse import urlsplit
 
 import httpx
 from mcp.server.fastmcp import FastMCP
@@ -14,6 +16,7 @@ from starlette.responses import JSONResponse
 
 PIPELINE_API_URL = os.getenv("PIPELINE_API_URL", "http://dlstreamer-pipeline-server:8080").rstrip("/")
 EXPLAIN_API_URL = os.getenv("EXPLAIN_API_URL", "http://multimodal-agentic-ui:5003").rstrip("/")
+AGENT_SERVICE_URL = os.getenv("AGENT_SERVICE_URL", "http://apm-agent:5002").rstrip("/")
 PIPELINE_REQUEST_PATH = (
     Path(__file__).resolve().parent.parent
     / "configs/dlstreamer-pipeline-server/pipeline-request-cpu.json"
@@ -34,10 +37,11 @@ class ExplainRequest(BaseModel):
     selected_time: str
 
 
-async def _request(method: str, url: str, **kwargs: Any) -> httpx.Response:
+async def _request(method: str, url: str, *, allow_redirect: bool = False, **kwargs: Any) -> httpx.Response:
     async with httpx.AsyncClient(timeout=httpx.Timeout(120, connect=5), trust_env=False) as client:
         response = await client.request(method, url, **kwargs)
-        response.raise_for_status()
+        if not (allow_redirect and response.status_code == 303):
+            response.raise_for_status()
         return response
 
 
@@ -72,6 +76,40 @@ async def explain(selected_time: str) -> dict[str, Any]:
         json={"selected_times": [selected_time]},
     )
     return response.json()
+
+
+@mcp.tool()
+async def run_agent(time_range: Literal["30s", "1m", "5m", "10m", "30m"] = "30s") -> dict[str, str]:
+    """Start agentic weld analysis for a selected time range, returning the run ID."""
+    response = await _request(
+        "POST", f"{EXPLAIN_API_URL}/run", data={"time_range": time_range},
+        follow_redirects=False, allow_redirect=True,
+    )
+    results_path = urlsplit(response.headers.get("location", "")).path
+    if response.status_code != 303 or "/results/" not in results_path:
+        raise ValueError("Agentic UI did not return a run results redirect")
+    run_id = results_path.rsplit("/results/", 1)[1]
+    try:
+        uuid.UUID(run_id)
+    except ValueError as error:
+        raise ValueError("Agentic UI returned an invalid run ID") from error
+    return {"run_id": run_id, "results_path": results_path}
+
+
+@mcp.tool()
+async def get_run_results(run_id: str) -> dict[str, Any]:
+    """Get the agent status or completed result shown on the run results page."""
+    try:
+        uuid.UUID(run_id)
+    except ValueError as error:
+        raise ValueError("run_id must be a UUID") from error
+
+    status_response = await _request("GET", f"{AGENT_SERVICE_URL}/agents/status/{run_id}")
+    status = status_response.json()
+    if status.get("status") == "completed":
+        result_response = await _request("GET", f"{AGENT_SERVICE_URL}/agents/results/{run_id}")
+        return {"run_id": run_id, "phase": "completed", "result": result_response.json()}
+    return {"run_id": run_id, "phase": "reasoning", "result": status}
 
 
 async def _http_tool(
