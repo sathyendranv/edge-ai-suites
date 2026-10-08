@@ -47,6 +47,7 @@ async def _request(method: str, url: str, *, allow_redirect: bool = False, **kwa
 
 @mcp.tool()
 async def start_pipeline(device: Literal["CPU", "GPU", "NPU"] = "CPU") -> dict[str, Any]:
+    
     """Start weld defect classification on the selected inference device."""
     payload = json.loads(PIPELINE_REQUEST_PATH.read_text(encoding="utf-8"))
     payload["parameters"]["classification-properties"]["device"] = device
@@ -55,6 +56,7 @@ async def start_pipeline(device: Literal["CPU", "GPU", "NPU"] = "CPU") -> dict[s
         f"{PIPELINE_API_URL}/pipelines/user_defined_pipelines/weld_defect_classification",
         json=payload,
     )
+    
     return response.json()
 
 
