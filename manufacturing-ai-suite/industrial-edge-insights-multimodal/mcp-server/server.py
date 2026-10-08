@@ -38,7 +38,7 @@ class ExplainRequest(BaseModel):
 
 
 async def _request(method: str, url: str, *, allow_redirect: bool = False, **kwargs: Any) -> httpx.Response:
-    async with httpx.AsyncClient(timeout=httpx.Timeout(120, connect=5), trust_env=False) as client:
+    async with httpx.AsyncClient(timeout=httpx.Timeout(180, connect=5), trust_env=False) as client:
         response = await client.request(method, url, **kwargs)
         if not (allow_redirect and response.status_code == 303):
             response.raise_for_status()
@@ -74,6 +74,17 @@ async def explain(selected_time: str) -> dict[str, Any]:
         "POST",
         f"{EXPLAIN_API_URL}/insights-ui/api/explain",
         json={"selected_times": [selected_time]},
+    )
+    return response.json()
+
+
+@mcp.tool()
+async def list_insights_data(page: int = 1, page_size: int = 10) -> dict[str, Any]:
+    """List paginated weld fusion results from the insights workbench."""
+    response = await _request(
+        "GET",
+        f"{EXPLAIN_API_URL}/insights-ui/api/data",
+        params={"page": page, "page_size": page_size},
     )
     return response.json()
 

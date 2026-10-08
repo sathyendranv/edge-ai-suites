@@ -22,13 +22,30 @@ class WeldMCPServerTests(unittest.IsolatedAsyncioTestCase):
     async def test_mcp_tools_are_registered(self) -> None:
         tools = await server.mcp.list_tools()
         self.assertEqual(
-            {"start_pipeline", "stop_pipeline", "explain", "run_agent", "get_run_results"},
+            {"start_pipeline", "stop_pipeline", "explain", "list_insights_data", "run_agent", "get_run_results"},
             {tool.name for tool in tools},
         )
         run_tool = next(tool for tool in tools if tool.name == "run_agent")
         time_range = run_tool.inputSchema["properties"]["time_range"]
         self.assertEqual(["30s", "1m", "5m", "10m", "30m"], time_range["enum"])
         self.assertEqual("30s", time_range["default"])
+
+    async def test_backend_requests_allow_three_minutes(self) -> None:
+        def respond(request: httpx.Request) -> httpx.Response:
+            self.assertEqual(
+                {"connect": 5.0, "read": 180.0, "write": 180.0, "pool": 180.0},
+                request.extensions["timeout"],
+            )
+            return httpx.Response(200, json={"ok": True})
+
+        original_client = httpx.AsyncClient
+
+        def client_factory(*args, **kwargs):
+            return original_client(*args, transport=httpx.MockTransport(respond), **kwargs)
+
+        with patch.object(server.httpx, "AsyncClient", side_effect=client_factory):
+            response = await server._request("GET", "http://example.invalid/test")
+        self.assertEqual({"ok": True}, response.json())
 
     async def test_start_pipeline_uses_checked_in_payload(self) -> None:
         original = json.loads(server.PIPELINE_REQUEST_PATH.read_text(encoding="utf-8"))
@@ -69,6 +86,25 @@ class WeldMCPServerTests(unittest.IsolatedAsyncioTestCase):
                 "POST",
                 "http://multimodal-agentic-ui:5003/insights-ui/api/explain",
                 json={"selected_times": ["2026-10-01T12:00:00Z"]},
+            )
+
+    async def test_list_insights_data_forwards_pagination(self) -> None:
+        data = {
+            "measurement": "fusion_result", "page": 2, "page_size": 25,
+            "has_more": False, "rows": [{"time": "2026-10-08T12:00:00Z"}],
+        }
+        with patch.object(server, "_request", new_callable=AsyncMock) as upstream:
+            upstream.return_value = httpx.Response(200, json=data)
+            self.assertEqual(data, await server.list_insights_data())
+            upstream.assert_awaited_once_with(
+                "GET", "http://multimodal-agentic-ui:5003/insights-ui/api/data",
+                params={"page": 1, "page_size": 10},
+            )
+            upstream.reset_mock()
+            self.assertEqual(data, await server.list_insights_data(page=2, page_size=25))
+            upstream.assert_awaited_once_with(
+                "GET", "http://multimodal-agentic-ui:5003/insights-ui/api/data",
+                params={"page": 2, "page_size": 25},
             )
 
     async def test_run_agent_returns_id_from_ui_redirect(self) -> None:
