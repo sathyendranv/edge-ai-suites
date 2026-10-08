@@ -22,13 +22,26 @@ class WeldMCPServerTests(unittest.IsolatedAsyncioTestCase):
     async def test_mcp_tools_are_registered(self) -> None:
         tools = await server.mcp.list_tools()
         self.assertEqual(
-            {"start_pipeline", "stop_pipeline", "explain", "list_insights_data", "run_agent", "get_run_results"},
+            {"start_pipeline", "stop_pipeline", "explain", "list_insights_data", "run_agent", "get_run_results", "describe"},
             {tool.name for tool in tools},
         )
         run_tool = next(tool for tool in tools if tool.name == "run_agent")
         time_range = run_tool.inputSchema["properties"]["time_range"]
         self.assertEqual(["30s", "1m", "5m", "10m", "30m"], time_range["enum"])
         self.assertEqual("30s", time_range["default"])
+
+    async def test_describe_reflects_registered_tools_without_network_calls(self) -> None:
+        with patch.object(server, "_request", side_effect=AssertionError("Unexpected upstream request")):
+            description = await server.describe()
+
+        registered = {tool.name: tool for tool in await server.mcp.list_tools()}
+        self.assertEqual("Weld defect detection", description["name"])
+        self.assertEqual(set(registered), {tool["name"] for tool in description["tools"]})
+        self.assertEqual(len(registered), len(description["tools"]))
+        for tool in description["tools"]:
+            self.assertEqual(registered[tool["name"]].description, tool["description"])
+            self.assertEqual(registered[tool["name"]].inputSchema, tool["input_schema"])
+        self.assertIn("advisory", description["operational_guidance"])
 
     async def test_backend_requests_allow_three_minutes(self) -> None:
         def respond(request: httpx.Request) -> httpx.Response:

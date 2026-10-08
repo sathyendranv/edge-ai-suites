@@ -123,6 +123,24 @@ async def get_run_results(run_id: str) -> dict[str, Any]:
     return {"run_id": run_id, "phase": "reasoning", "result": status}
 
 
+@mcp.tool()
+async def describe() -> dict[str, Any]:
+    """Describe the weld-analysis MCP server, registered tools, and operational scope."""
+    tools = await mcp.list_tools()
+    return {
+        "name": "Weld defect detection",
+        "purpose": "Pipeline control, fusion data access, and agent-assisted weld quality analysis.",
+        "tools": [
+            {"name": tool.name, "description": tool.description or "", "input_schema": tool.inputSchema}
+            for tool in tools
+        ],
+        "operational_guidance": (
+            "Pipeline start/stop commands affect live processing. Agent and model-generated "
+            "analysis is advisory; review results before making operational or safety decisions."
+        ),
+    }
+
+
 async def _http_tool(
     request: Request,
     schema: type[BaseModel],
